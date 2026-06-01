@@ -197,6 +197,44 @@ class CanvasPanel(Widget):
                 )
                 self._edit_canvas.pset(x, y, tile)
 
+    def copy_canvas(self):
+        x, y, w, h = self._selection_rect()
+        self._canvas_buffer = self.canvas_var.get_slice(x, y, w, h)
+
+    def cut_canvas(self):
+        self.copy_canvas()
+        x, y, w, h = self._selection_rect()
+        self._add_pre_history()
+        self.canvas_var.rect(x, y, w, h, (0, 0) if self._is_tilemap_mode else 0)
+        self._add_post_history()
+
+    def paste_canvas(self):
+        if self._canvas_buffer is None:
+            return
+        self._add_pre_history()
+        width = len(self._canvas_buffer[0])
+        height = len(self._canvas_buffer)
+        width -= max(self._select_x1 + width - 16, 0)
+        height -= max(self._select_y1 + height - 16, 0)
+        clipped = [row[:width] for row in self._canvas_buffer[:height]]
+        self.canvas_var.set_slice(
+            self.focus_x_var * 8 + self._select_x1,
+            self.focus_y_var * 8 + self._select_y1,
+            clipped,
+        )
+        self._add_post_history()
+
+    def clear_canvas_rect(self, x, y, w, h):
+        self.canvas_var.rect(
+            x,
+            y,
+            w,
+            h,
+            (self.secondary_color_var, self.secondary_color_var)
+            if self._is_tilemap_mode
+            else self.secondary_color_var,
+        )
+
     # Event handlers
 
     def __on_h_scroll_bar_change(self, value):
@@ -454,33 +492,31 @@ class CanvasPanel(Widget):
                 self._select_x1 = self._select_y1 = 0
                 self._select_x2 = self._select_y2 = 15
 
-            # Ctrl+C: Copy
-            if pyxel.btnp(pyxel.KEY_C):
-                x, y, w, h = self._selection_rect()
-                self._canvas_buffer = self.canvas_var.get_slice(x, y, w, h)
+            # Ctrl+C / Ctrl+Insert: Copy
+            if pyxel.btnp(pyxel.KEY_C) or pyxel.btnp(pyxel.KEY_INSERT):
+                self.copy_canvas()
 
             # Ctrl+X: Cut
             if pyxel.btnp(pyxel.KEY_X):
-                x, y, w, h = self._selection_rect()
-                self._canvas_buffer = self.canvas_var.get_slice(x, y, w, h)
-                self._add_pre_history()
-                self.canvas_var.rect(x, y, w, h, (0, 0) if self._is_tilemap_mode else 0)
-                self._add_post_history()
+                self.cut_canvas()
 
             # Ctrl+V: Paste
-            if self._canvas_buffer is not None and pyxel.btnp(pyxel.KEY_V):
-                self._add_pre_history()
-                width = len(self._canvas_buffer[0])
-                height = len(self._canvas_buffer)
-                width -= max(self._select_x1 + width - 16, 0)
-                height -= max(self._select_y1 + height - 16, 0)
-                clipped = [row[:width] for row in self._canvas_buffer[:height]]
-                self.canvas_var.set_slice(
-                    self.focus_x_var * 8 + self._select_x1,
-                    self.focus_y_var * 8 + self._select_y1,
-                    clipped,
-                )
-                self._add_post_history()
+            if pyxel.btnp(pyxel.KEY_V):
+                self.paste_canvas()
+
+        # Copy/cut/paste canvas (Shift+Delete / Shift+Insert)
+        if (
+            self.tool_var == TOOL_SELECT
+            and pyxel.btn(pyxel.KEY_SHIFT)
+            and not has_cmd_or_ctrl
+        ):
+            # Shift+Delete: Cut
+            if pyxel.btnp(pyxel.KEY_DELETE):
+                self.cut_canvas()
+
+            # Shift+Insert: Paste
+            if pyxel.btnp(pyxel.KEY_INSERT):
+                self.paste_canvas()
 
         # Move selection (Ctrl+Arrows)
         if (
@@ -507,15 +543,7 @@ class CanvasPanel(Widget):
                     else pyxel.Image(w, h)
                 )
                 buffer.blt(0, 0, self.canvas_var, x, y, w, h)
-                self.canvas_var.rect(
-                    x,
-                    y,
-                    w,
-                    h,
-                    (self.secondary_color_var, self.secondary_color_var)
-                    if self._is_tilemap_mode
-                    else self.secondary_color_var,
-                )
+                self.clear_canvas_rect(x, y, w, h)
                 self.canvas_var.blt(x + dx, y + dy, buffer, 0, 0, w, h)
                 self._select_x1 += dx
                 self._select_x2 += dx
@@ -526,18 +554,10 @@ class CanvasPanel(Widget):
         # Selection tool operations (no Ctrl/Cmd)
         if self.tool_var == TOOL_SELECT and not has_cmd_or_ctrl:
             # DELETE: Clear selection
-            if pyxel.btnp(pyxel.KEY_DELETE):
+            if not pyxel.btn(pyxel.KEY_SHIFT) and pyxel.btnp(pyxel.KEY_DELETE):
                 x, y, w, h = self._selection_rect()
                 self._add_pre_history()
-                self.canvas_var.rect(
-                    x,
-                    y,
-                    w,
-                    h,
-                    (self.secondary_color_var, self.secondary_color_var)
-                    if self._is_tilemap_mode
-                    else self.secondary_color_var,
-                )
+                self.clear_canvas_rect(x, y, w, h)
                 self._add_post_history()
 
             # H: Flip horizontal
@@ -552,6 +572,36 @@ class CanvasPanel(Widget):
                 x, y, w, h = self._selection_rect()
                 self._add_pre_history()
                 self.canvas_var.blt(x, y, self.canvas_var, x, y, w, -h)
+                self._add_post_history()
+            
+            # T: Turn Clockwise 90 degrees
+            if pyxel.btnp(pyxel.KEY_T):
+                ccw = pyxel.btn(pyxel.KEY_SHIFT)
+                x, y, w, h = self._selection_rect()
+
+                self._add_pre_history()
+                new_canvas = (
+                    pyxel.Tilemap(w, h, 0)
+                    if self._is_tilemap_mode
+                    else pyxel.Image(w, h)
+                )
+                new_canvas.blt(0, 0, self.canvas_var, x, y, w, h)
+                self.clear_canvas_rect(x, y, w, h)
+                self.canvas_var.blt(x,y,new_canvas,0,0,w,h,rotate=(-90 if ccw else 90),)
+
+                # Update selection bounds
+                new_w_cells = h
+                new_h_cells = w
+                cx = (self._select_x1 + self._select_x2) / 2
+                cy = (self._select_y1 + self._select_y2) / 2
+                new_x1 = int(cx - (new_w_cells - 1) / 2)
+                new_y1 = int(cy - (new_h_cells - 1) / 2)
+                self._select_x1 = clamp(new_x1, 0, 15)
+                self._select_y1 = clamp(new_y1, 0, 15)
+                self._select_x2 = clamp(new_x1 + new_w_cells - 1, 0, 15)
+                self._select_y2 = clamp(new_y1 + new_h_cells - 1, 0, 15)
+
+  
                 self._add_post_history()
 
         # Move tile focus
