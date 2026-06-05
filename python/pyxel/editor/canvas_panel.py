@@ -224,7 +224,7 @@ class CanvasPanel(Widget):
         )
         self._add_post_history()
 
-    def clear_canvas_rect(self, x, y, w, h):
+    def clear_canvas(self, x, y, w, h):
         self.canvas_var.rect(
             x,
             y,
@@ -481,16 +481,40 @@ class CanvasPanel(Widget):
                     )
                 self._add_post_history(bank_copy=True)
 
+        # Ctrl+A: Select all
+        if pyxel.btnp(pyxel.KEY_A):
+            self._select_x1 = self._select_y1 = 0
+            self._select_x2 = self._select_y2 = 15
+            self.tool_var = TOOL_SELECT
+
+        # Shift + Arrows: Change selection
+        if self.tool_var == TOOL_SELECT and pyxel.btn(pyxel.KEY_SHIFT):
+            # CTRL inverts selection movement direction
+            if pyxel.btn(pyxel.KEY_CTRL):
+                if pyxel.btnp(pyxel.KEY_LEFT):
+                    self._select_x2 = clamp(self._select_x2 - 1 , self._select_x1, 15)
+                if pyxel.btnp(pyxel.KEY_RIGHT):
+                    self._select_x1 = clamp(self._select_x1 + 1, 0, self._select_x2)
+                if pyxel.btnp(pyxel.KEY_UP):
+                    self._select_y2 = clamp(self._select_y2 - 1, self._select_y1, 15)
+                if pyxel.btnp(pyxel.KEY_DOWN):
+                    self._select_y1 = clamp(self._select_y1 + 1, 0, self._select_y2)
+            else:
+                if pyxel.btnp(pyxel.KEY_LEFT):
+                    self._select_x1 = clamp(self._select_x1 - 1 , 0, 15)
+                if pyxel.btnp(pyxel.KEY_RIGHT):
+                    self._select_x2 = clamp(self._select_x2 + 1, 0, 15)
+                if pyxel.btnp(pyxel.KEY_UP):
+                    self._select_y1 = clamp(self._select_y1 - 1, 0, 15)
+                if pyxel.btnp(pyxel.KEY_DOWN):
+                    self._select_y2 = clamp(self._select_y2 + 1, 0, 15)
+
         # Copy/cut/paste canvas (Ctrl/Cmd without Shift)
         if (
             self.tool_var == TOOL_SELECT
             and not pyxel.btn(pyxel.KEY_SHIFT)
             and has_cmd_or_ctrl
         ):
-            # Ctrl+A: Select all
-            if pyxel.btnp(pyxel.KEY_A):
-                self._select_x1 = self._select_y1 = 0
-                self._select_x2 = self._select_y2 = 15
 
             # Ctrl+C / Ctrl+Insert: Copy
             if pyxel.btnp(pyxel.KEY_C) or pyxel.btnp(pyxel.KEY_INSERT):
@@ -543,7 +567,7 @@ class CanvasPanel(Widget):
                     else pyxel.Image(w, h)
                 )
                 buffer.blt(0, 0, self.canvas_var, x, y, w, h)
-                self.clear_canvas_rect(x, y, w, h)
+                self.clear_canvas(x, y, w, h)
                 self.canvas_var.blt(x + dx, y + dy, buffer, 0, 0, w, h)
                 self._select_x1 += dx
                 self._select_x2 += dx
@@ -557,7 +581,7 @@ class CanvasPanel(Widget):
             if not pyxel.btn(pyxel.KEY_SHIFT) and pyxel.btnp(pyxel.KEY_DELETE):
                 x, y, w, h = self._selection_rect()
                 self._add_pre_history()
-                self.clear_canvas_rect(x, y, w, h)
+                self.clear_canvas(x, y, w, h)
                 self._add_post_history()
 
             # H: Flip horizontal
@@ -574,11 +598,18 @@ class CanvasPanel(Widget):
                 self.canvas_var.blt(x, y, self.canvas_var, x, y, w, -h)
                 self._add_post_history()
             
-            # T: Turn Clockwise 90 degrees
+            # T: Turn sprite in a rotating angle, default 90 degrees
             if pyxel.btnp(pyxel.KEY_T):
+                # Hold Shift for Counter Clockwise
+                # Hold Alt for 45 degrees
                 ccw = pyxel.btn(pyxel.KEY_SHIFT)
+                rotating_angle = (-90 if ccw else 90)
+                if pyxel.btn(pyxel.KEY_ALT):
+                    rotating_angle /= 2
+
                 x, y, w, h = self._selection_rect()
 
+                # copy and rotate
                 self._add_pre_history()
                 new_canvas = (
                     pyxel.Tilemap(w, h, 0)
@@ -586,21 +617,18 @@ class CanvasPanel(Widget):
                     else pyxel.Image(w, h)
                 )
                 new_canvas.blt(0, 0, self.canvas_var, x, y, w, h)
-                self.clear_canvas_rect(x, y, w, h)
-                self.canvas_var.blt(x,y,new_canvas,0,0,w,h,rotate=(-90 if ccw else 90),)
+                self.clear_canvas(x, y, w, h)
+                self.canvas_var.blt(x,y,new_canvas,0,0,w,h,rotate=rotating_angle)
 
                 # Update selection bounds
-                new_w_cells = h
-                new_h_cells = w
                 cx = (self._select_x1 + self._select_x2) / 2
                 cy = (self._select_y1 + self._select_y2) / 2
-                new_x1 = int(cx - (new_w_cells - 1) / 2)
-                new_y1 = int(cy - (new_h_cells - 1) / 2)
+                new_x1 = int(cx - (h - 1) / 2)
+                new_y1 = int(cy - (w - 1) / 2)
                 self._select_x1 = clamp(new_x1, 0, 15)
                 self._select_y1 = clamp(new_y1, 0, 15)
-                self._select_x2 = clamp(new_x1 + new_w_cells - 1, 0, 15)
-                self._select_y2 = clamp(new_y1 + new_h_cells - 1, 0, 15)
-
+                self._select_x2 = clamp(new_x1 + h - 1, 0, 15)
+                self._select_y2 = clamp(new_y1 + w - 1, 0, 15)
   
                 self._add_post_history()
 
