@@ -19,7 +19,6 @@ from .widgets.settings import WIDGET_HOLD_TIME, WIDGET_PANEL_COLOR, WIDGET_REPEA
 # Sentinel tile for cells that tilemap-mode drawing primitives leave untouched
 _EMPTY_TILE = (255, 255)
 
-
 class CanvasPanel(Widget):
     # Variables:
     #   color_var
@@ -221,6 +220,7 @@ class CanvasPanel(Widget):
             self.focus_x_var * 8 + self._select_x1,
             self.focus_y_var * 8 + self._select_y1,
             clipped,
+            self.secondary_color_var
         )
         self._add_post_history()
 
@@ -258,7 +258,7 @@ class CanvasPanel(Widget):
                 (self.tile_x_var, self.tile_y_var) = self.canvas_var.pget(x_focus, y_focus)
             else:
                 color = self.canvas_var.pget(x_focus, y_focus)
-                if pyxel.btn(pyxel.KEY_CTRL):
+                if pyxel.btn(pyxel.KEY_CTRL) or pyxel.btn(pyxel.KEY_GUI):
                     self.secondary_color_var = color
                 else:
                     self.color_var = color
@@ -335,7 +335,7 @@ class CanvasPanel(Widget):
                 0,
                 0,
                 16,
-                16,
+                16
             )
             self._add_post_history()
 
@@ -472,12 +472,12 @@ class CanvasPanel(Widget):
                 self._add_pre_history(bank_copy=True)
                 if self._is_tilemap_mode:
                     pyxel.tilemaps[self.tilemap_index_var].set_slice(
-                        0, 0, self._bank_buffer["data"]
+                        0, 0, self._bank_buffer["data"], self.secondary_color_var
                     )
                     self.image_index_var = self._bank_buffer["imgsrc"]
                 else:
                     pyxel.images[self.image_index_var].set_slice(
-                        0, 0, self._bank_buffer["data"]
+                        0, 0, self._bank_buffer["data"], self.secondary_color_var
                     )
                 self._add_post_history(bank_copy=True)
 
@@ -489,8 +489,8 @@ class CanvasPanel(Widget):
 
         # Shift + Arrows: Change selection
         if self.tool_var == TOOL_SELECT and pyxel.btn(pyxel.KEY_SHIFT):
-            # CTRL inverts selection movement direction
-            if pyxel.btn(pyxel.KEY_CTRL):
+            # CTRL/CMD inverts selection movement direction
+            if has_cmd_or_ctrl:
                 if pyxel.btnp(pyxel.KEY_LEFT):
                     self._select_x2 = clamp(self._select_x2 - 1 , self._select_x1, 15)
                 if pyxel.btnp(pyxel.KEY_RIGHT):
@@ -515,7 +515,6 @@ class CanvasPanel(Widget):
             and not pyxel.btn(pyxel.KEY_SHIFT)
             and has_cmd_or_ctrl
         ):
-
             # Ctrl+C / Ctrl+Insert: Copy
             if pyxel.btnp(pyxel.KEY_C) or pyxel.btnp(pyxel.KEY_INSERT):
                 self.copy_canvas()
@@ -568,7 +567,7 @@ class CanvasPanel(Widget):
                 )
                 buffer.blt(0, 0, self.canvas_var, x, y, w, h)
                 self.clear_canvas(x, y, w, h)
-                self.canvas_var.blt(x + dx, y + dy, buffer, 0, 0, w, h)
+                self.canvas_var.blt(x + dx, y + dy, buffer, 0, 0, w, h, colkey=self.secondary_color_var)
                 self._select_x1 += dx
                 self._select_x2 += dx
                 self._select_y1 += dy
@@ -618,9 +617,9 @@ class CanvasPanel(Widget):
                 )
                 new_canvas.blt(0, 0, self.canvas_var, x, y, w, h)
                 self.clear_canvas(x, y, w, h)
-                self.canvas_var.blt(x,y,new_canvas,0,0,w,h,rotate=rotating_angle)
+                self.canvas_var.blt(x, y, new_canvas, 0, 0, w, h, rotate=rotating_angle, colkey=self.secondary_color_var)
 
-                # Update selection bounds
+               # Update selection bounds
                 cx = (self._select_x1 + self._select_x2) / 2
                 cy = (self._select_y1 + self._select_y2) / 2
                 new_x1 = int(cx - (h - 1) / 2)
