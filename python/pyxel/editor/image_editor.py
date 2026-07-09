@@ -114,6 +114,7 @@ class ImageEditor(EditorBase):
     def __on_drop(self, filename):
         colors = list(pyxel.colors)
         user_colors = colors[pyxel.NUM_COLORS :]
+        # Load dropped images against the user sub-palette instead of system colors.
         pyxel.colors[:] = user_colors
         try:
             pyxel.images[self.image_index_var].load(
@@ -127,7 +128,7 @@ class ImageEditor(EditorBase):
     def __on_update(self):
         self.check_tool_button_shortcuts()
 
-        # Check color shortcuts
+        # Handle color shortcut keys.
         if not pyxel.btn(pyxel.KEY_ALT):
             for key in _COLOR_SHORTCUT_KEYS:
                 if pyxel.btnp(key):

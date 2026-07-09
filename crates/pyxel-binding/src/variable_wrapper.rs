@@ -8,9 +8,11 @@ use crate::sound_wrapper::Sound;
 use crate::tilemap_wrapper::Tilemap;
 use crate::tone_wrapper::Tone;
 
+// Python sequence wrappers for the global resource lists
+
 wrap_as_python_primitive_sequence!(
     Colors,
-    u32, // Dummy
+    u32, // Global sequence handle has no per-instance state
     (|_| pyxel::colors().len()),
     pyxel::Rgb24,
     (|_, index| pyxel::colors()[index]),
@@ -26,7 +28,7 @@ macro_rules! wrap_ptr_vec_as_python_object_sequence {
     ($wrapper_name:ident, $value_type:ident, $rc_type:path, $global_fn:path) => {
         wrap_as_python_object_sequence!(
             $wrapper_name,
-            u32, // Dummy
+            u32, // Global sequence handle has no per-instance state
             (|_| $global_fn().len()),
             $value_type,
             (|_, index: usize| $value_type::wrap($global_fn()[index].clone())),
@@ -53,6 +55,8 @@ wrap_ptr_vec_as_python_object_sequence!(Channels, Channel, pyxel::RcChannel, pyx
 wrap_ptr_vec_as_python_object_sequence!(Tones, Tone, pyxel::RcTone, pyxel::tones);
 wrap_ptr_vec_as_python_object_sequence!(Sounds, Sound, pyxel::RcSound, pyxel::sounds);
 wrap_ptr_vec_as_python_object_sequence!(Musics, Music, pyxel::RcMusic, pyxel::musics);
+
+// Module attribute dispatch
 
 #[pyfunction]
 fn __getattr__(py: Python, name: &str) -> PyResult<Py<PyAny>> {
@@ -93,6 +97,8 @@ fn __getattr__(py: Python, name: &str) -> PyResult<Py<PyAny>> {
     };
     Ok(value)
 }
+
+// Module registration
 
 pub fn add_module_variables(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Colors>()?;

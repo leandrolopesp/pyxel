@@ -11,7 +11,7 @@ class TestMusic:
     def test_set_pads_to_num_channels(self):
         msc = pyxel.Music()
         msc.set([0, 1], [2, 3])
-        # set() pads to NUM_CHANNELS (4)
+        # set() pads to NUM_CHANNELS (4).
         assert len(msc.seqs) == pyxel.NUM_CHANNELS
 
     def test_set_preserves_data(self):
@@ -48,8 +48,9 @@ class TestMusic:
         msc = pyxel.Music()
         msc.set([0, 1])
         result = msc.snds_list  # type: ignore[attr-defined]
-        # snds_list returns Seqs (same as seqs)
+        # snds_list returns Seqs (same as seqs).
         assert len(result) == len(msc.seqs)
+        assert list(result[0]) == [0, 1]
         out = capfd.readouterr().out
         assert "deprecated" in out.lower()
 
@@ -75,7 +76,7 @@ class TestMusicSeqs:
         msc.set([0, 1], [2, 3])
         msc.seqs[0][0] = 5
         assert msc.seqs[0][0] == 5
-        # Other elements unchanged
+        # Other elements unchanged.
         assert msc.seqs[0][1] == 1
 
     def test_seqs_inner_seq_append(self):
@@ -107,7 +108,7 @@ class TestMusicSeqs:
         msc.seqs[0] = [10, 11, 12]  # type: ignore[call-overload]
         assert len(msc.seqs[0]) == 3
         assert list(msc.seqs[0]) == [10, 11, 12]
-        # Other channel unchanged
+        # Other channel unchanged.
         assert list(msc.seqs[1]) == [2, 3]
 
     def test_seqs_delitem(self):
@@ -125,13 +126,21 @@ class TestMusicSeqs:
         assert len(msc.seqs) == original_len + 1
         assert list(msc.seqs[1]) == [5, 6]
 
+    def test_seqs_reversed_step_one_slice_assignment_inserts(self):
+        msc = pyxel.Music()
+        msc.set([0], [1], [2])
+
+        msc.seqs[2:0] = [[7]]  # type: ignore[assignment]
+
+        assert [list(seq) for seq in msc.seqs] == [[0], [1], [7], [2], []]
+
     def test_seqs_pop(self):
         msc = pyxel.Music()
         msc.set([0], [1], [2])
         original_len = len(msc.seqs)
         popped = msc.seqs.pop()
         assert len(msc.seqs) == original_len - 1
-        assert isinstance(popped, list)
+        assert popped == []
 
     def test_seqs_clear(self):
         msc = pyxel.Music()
@@ -145,20 +154,21 @@ class TestMusicSeqs:
         original_len = len(msc.seqs)
         msc.seqs.extend([[1, 2], [3, 4]])  # type: ignore[arg-type]
         assert len(msc.seqs) == original_len + 2
+        assert list(msc.seqs[-2]) == [1, 2]
+        assert list(msc.seqs[-1]) == [3, 4]
 
     def test_seqs_slice_access(self):
         msc = pyxel.Music()
         msc.set([0], [1], [2])
         sliced = msc.seqs[0:2]
-        assert isinstance(sliced, list)
-        assert len(sliced) == 2
+        assert sliced == [[0], [1]]
 
     def test_seqs_reversed(self):
         msc = pyxel.Music()
         msc.set([10], [20], [30])
         rev = list(reversed(msc.seqs))
         assert len(rev) == len(msc.seqs)
-        # Last channel becomes first in reversed
+        # Last channel becomes first in reversed.
         assert list(rev[0]) == list(msc.seqs[-1])
 
     def test_seqs_repr(self):
@@ -179,7 +189,7 @@ class TestMusicSeqs:
         msc = pyxel.Music()
         msc.set([0])
         original_len = len(msc.seqs)
-        # seqs property is read-only, so use local variable for +=
+        # seqs property is read-only, so use a local variable for +=.
         seqs = msc.seqs
         seqs += [[5, 6], [7, 8]]  # type: ignore[operator]
         assert len(msc.seqs) == original_len + 2

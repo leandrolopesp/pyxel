@@ -55,7 +55,7 @@ The created resource file can be loaded and used in a Pyxel application with the
 
 ### Switching Resource Files
 
-While the editor is running, you can drag and drop another .pyxres file onto the window to load its contents. This operation overwrites all current edits, so please be careful if you have unsaved changes.
+While the editor is running, you can drag and drop another .pyxres file onto the window to load its contents. This operation overwrites all current edits, so be careful if you have unsaved changes.
 
 ## Image Editor
 
@@ -383,7 +383,7 @@ A mode for arranging sounds in playback order to compose music tracks.
 
 ### Specifications
 
-- **Musics:** 0–7 (8 tracks)
+- **Music Tracks:** 0–7 (8 tracks)
 - **Channels:** 4
 - **Sounds per Channel:** Max 32
 

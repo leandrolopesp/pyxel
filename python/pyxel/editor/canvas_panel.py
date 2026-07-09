@@ -16,7 +16,7 @@ from .settings import (
 from .widgets import ScrollBar, Widget
 from .widgets.settings import WIDGET_HOLD_TIME, WIDGET_PANEL_COLOR, WIDGET_REPEAT_TIME
 
-# Sentinel tile for cells that tilemap-mode drawing primitives leave untouched
+# Sentinel tile that marks cells touched by tilemap-mode drawing primitives.
 _EMPTY_TILE = (255, 255)
 
 class CanvasPanel(Widget):
@@ -34,6 +34,9 @@ class CanvasPanel(Widget):
     #   tile_y_var
     #   tile_w_var
     #   tile_h_var
+    #
+    # Events:
+    #   none
 
     def __init__(self, parent):
         super().__init__(parent, 11, 16, 130, 130)
@@ -77,6 +80,7 @@ class CanvasPanel(Widget):
         self.copy_var("secondary_color_var", parent)
         self._drag_button = None
 
+        # Initialize horizontal scroll bar
         self._h_scroll_bar = ScrollBar(
             self,
             0,
@@ -89,6 +93,7 @@ class CanvasPanel(Widget):
         self._h_scroll_bar.add_event_listener("change", self.__on_h_scroll_bar_change)
         self.add_var_event_listener("focus_x_var", "change", self.__on_focus_x_change)
 
+        # Initialize vertical scroll bar
         self._v_scroll_bar = ScrollBar(
             self,
             129,
@@ -250,18 +255,20 @@ class CanvasPanel(Widget):
         self._v_scroll_bar.value_var = value
 
     def __on_mouse_down(self, key, x, y):
-        # Color pick (middle click on any tool)
+        # Right click picks the current color or tile.
         if key == pyxel.MOUSE_BUTTON_MIDDLE:
-            x_focus = self.focus_x_var * 8 + (x - self.x) // 8
-            y_focus = self.focus_y_var * 8 + (y - self.y) // 8
+            x, y = self._screen_to_focus(x, y)
+            x += self.focus_x_var * 8
+            y += self.focus_y_var * 8
             if self._is_tilemap_mode:
-                (self.tile_x_var, self.tile_y_var) = self.canvas_var.pget(x_focus, y_focus)
+                (self.tile_x_var, self.tile_y_var) = self.canvas_var.pget(x, y)
             else:
-                color = self.canvas_var.pget(x_focus, y_focus)
+                color = self.canvas_var.pget(x, y)
                 if pyxel.btn(pyxel.KEY_CTRL) or pyxel.btn(pyxel.KEY_GUI):
                     self.secondary_color_var = color
                 else:
                     self.color_var = color
+                    
             self._drag_offset_x = 0
             self._drag_offset_y = 0
             self._drag_button = key
@@ -462,7 +469,7 @@ class CanvasPanel(Widget):
             if pyxel.btnp(pyxel.KEY_X):
                 self._add_pre_history(bank_copy=True)
                 if self._is_tilemap_mode:
-                    pyxel.tilemaps[self.tilemap_index_var].rect(0, 0, 256, 256, 0)
+                    pyxel.tilemaps[self.tilemap_index_var].rect(0, 0, 256, 256, (0, 0))
                 else:
                     pyxel.images[self.image_index_var].rect(0, 0, 256, 256, 0)
                 self._add_post_history(bank_copy=True)
@@ -716,7 +723,7 @@ class CanvasPanel(Widget):
         )
 
         # Draw selection area
-        if self.tool_var == TOOL_SELECT and self._select_x1 >= 0:
+        if self.tool_var == TOOL_SELECT:
             x = self.x + 1 + self._select_x1 * 8
             y = self.y + 1 + self._select_y1 * 8
             w = (self._select_x2 - self._select_x1 + 1) * 8

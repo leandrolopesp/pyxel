@@ -1,16 +1,14 @@
-use std::fmt;
 use std::fs::File;
 use std::io::Read;
-use std::path::Path;
 
 use zip::ZipArchive;
 
-use crate::image::{Color, Image, Rgb24};
+use crate::image::{Color, Image};
 use crate::music::Music;
 use crate::pyxel::{self, Pyxel};
 use crate::settings::{
     DEFAULT_SOUND_SPEED, NUM_CHANNELS, NUM_IMAGES, NUM_MUSICS, NUM_SOUNDS, NUM_TILEMAPS,
-    PALETTE_FILE_EXTENSION, TILEMAP_SIZE, VERSION,
+    TILEMAP_SIZE, VERSION,
 };
 use crate::sound::{Sound, SoundEffect, SoundNote, SoundTone, SoundVolume};
 use crate::tilemap::{ImageSource, ImageTileCoord, Tilemap};
@@ -18,20 +16,15 @@ use crate::utils::{parse_hex_string, simplify_string};
 
 pub const RESOURCE_ARCHIVE_DIRNAME: &str = "pyxel_resource/";
 
+// Legacy archive item adapters
+
 trait ResourceItem {
     fn resource_name(item_index: u32) -> String;
     fn clear(&mut self);
     fn deserialize(&mut self, version: u32, input: &str);
 }
 
-impl fmt::Display for ImageSource {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ImageSource::Index(index) => write!(f, "{index}"),
-            ImageSource::Image(_) => write!(f, "0"),
-        }
-    }
-}
+// Image data
 
 impl ResourceItem for Image {
     fn resource_name(item_index: u32) -> String {
@@ -51,6 +44,8 @@ impl ResourceItem for Image {
         }
     }
 }
+
+// Tilemap data
 
 impl ResourceItem for Tilemap {
     fn resource_name(item_index: u32) -> String {
@@ -90,6 +85,8 @@ impl ResourceItem for Tilemap {
         }
     }
 }
+
+// Sound data
 
 impl ResourceItem for Sound {
     fn resource_name(item_index: u32) -> String {
@@ -135,6 +132,8 @@ impl ResourceItem for Sound {
     }
 }
 
+// Music data
+
 impl ResourceItem for Music {
     fn resource_name(item_index: u32) -> String {
         format!("{RESOURCE_ARCHIVE_DIRNAME}music{item_index}")
@@ -159,15 +158,16 @@ impl ResourceItem for Music {
 }
 
 impl Pyxel {
+    // Load legacy archive entries.
     pub fn load_old_resource(
         &mut self,
         archive: &mut ZipArchive<File>,
-        filename: &str,
         include_images: bool,
         include_tilemaps: bool,
         include_sounds: bool,
         include_musics: bool,
     ) {
+        // Read and validate archive version.
         let version_name = format!("{RESOURCE_ARCHIVE_DIRNAME}version");
         let contents = {
             let mut file = archive.by_name(&version_name).unwrap();
@@ -181,6 +181,7 @@ impl Pyxel {
             "Unsupported resource file version '{contents}'"
         );
 
+        // Deserialize selected resource banks.
         macro_rules! deserialize {
             ($type: ty, $accessor: expr, $count: expr) => {
                 for i in 0..$count {
@@ -208,28 +209,10 @@ impl Pyxel {
         if include_musics {
             deserialize!(Music, pyxel::musics(), NUM_MUSICS);
         }
-
-        // Try to load Pyxel palette file
-        let filename = filename
-            .rfind('.')
-            .map_or(filename, |i| &filename[..i])
-            .to_string()
-            + PALETTE_FILE_EXTENSION;
-
-        if let Ok(mut file) = File::open(Path::new(&filename)) {
-            let mut contents = String::new();
-            file.read_to_string(&mut contents).unwrap();
-
-            let colors: Vec<Rgb24> = contents
-                .lines()
-                .filter(|s| !s.is_empty())
-                .map(|s| u32::from_str_radix(s.trim(), 16).unwrap() as Rgb24)
-                .collect();
-
-            *pyxel::colors() = colors;
-        }
     }
 }
+
+// Helpers
 
 fn parse_version_string(string: &str) -> Result<u32, &str> {
     let mut version = 0u32;

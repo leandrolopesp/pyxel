@@ -51,7 +51,18 @@
   ],
   "ui": {
     "title": {
-      "en": "Pyxel Web Launcher"
+      "en": "Pyxel Web Launcher",
+      "cn": "Pyxel Web Launcher",
+      "de": "Pyxel Web Launcher",
+      "es": "Pyxel Web Launcher",
+      "fr": "Pyxel Web Launcher",
+      "it": "Pyxel Web Launcher",
+      "ja": "Pyxel Web Launcher",
+      "ko": "Pyxel Web Launcher",
+      "pt": "Pyxel Web Launcher",
+      "ru": "Pyxel Web Launcher",
+      "tr": "Pyxel Web Launcher",
+      "uk": "Pyxel Web Launcher"
     },
     "subtitle": {
       "en": "Launch tool for the web version of {0}, a retro game engine for Python.",
@@ -85,14 +96,14 @@
       "en": "Enable Virtual Gamepad",
       "cn": "启用虚拟游戏手柄",
       "de": "Virtuelles Gamepad aktivieren",
-      "es": "Activar mando virtual",
+      "es": "Activar gamepad virtual",
       "fr": "Activer la manette virtuelle",
       "it": "Abilita gamepad virtuale",
-      "ja": "仮想ゲームパッドを有効にする",
+      "ja": "バーチャルゲームパッドを有効にする",
       "ko": "가상 게임패드 활성화",
       "pt": "Ativar gamepad virtual",
       "ru": "Включить виртуальный геймпад",
-      "tr": "Sanal oyun kumandasını etkinleştir",
+      "tr": "Sanal gamepad'i etkinleştir",
       "uk": "Увімкнути віртуальний геймпад"
     },
     "label_launch_url": {
@@ -117,7 +128,7 @@
       "fr": "Le type du fichier de démarrage doit être {0}, {1} ou {2}.",
       "it": "Il tipo di file di avvio deve essere {0}, {1} o {2}.",
       "ja": "起動ファイルの形式は {0}、{1}、または {2}。",
-      "ko": "시작 파일 형식은 {0}, {1} 또는 {2}이어야 합니다.",
+      "ko": "시작 파일 형식은 {0}, {1} 또는 {2}여야 합니다.",
       "pt": "O tipo do arquivo de inicialização deve ser {0}, {1} ou {2}.",
       "ru": "Тип файла запуска должен быть {0}, {1} или {2}.",
       "tr": "Başlangıç dosya türü {0}, {1} veya {2} olmalıdır.",
@@ -176,8 +187,8 @@
       "ko": "타일맵 에디터",
       "pt": "Editor de tilemap",
       "ru": "Редактор тайловых карт",
-      "tr": "Karo Haritası Düzenleyici",
-      "uk": "Редактор тайлових мап"
+      "tr": "Tilemap Düzenleyici",
+      "uk": "Редактор тайлових карт"
     },
     "editor_screen_sound": {
       "en": "Sound Editor",
@@ -208,18 +219,18 @@
       "uk": "Редактор музики"
     },
     "footer": {
-      "en": "For specific instructions, please refer to {0}.",
-      "cn": "详细说明请参考{0}。",
+      "en": "For detailed instructions, see {0}.",
+      "cn": "详细说明请参考 {0}。",
       "de": "Für detaillierte Anweisungen siehe {0}.",
       "es": "Para instrucciones detalladas, consulte {0}.",
       "fr": "Pour des instructions détaillées, veuillez consulter {0}.",
       "it": "Per istruzioni dettagliate, consultare {0}.",
-      "ja": "詳しい使い方は{0}をご参照ください。",
-      "ko": "자세한 사용법은 {0}을 참조하세요.",
+      "ja": "詳しい使い方は {0} をご参照ください。",
+      "ko": "자세한 사용법은 {0}를 참조하세요.",
       "pt": "Para instruções detalhadas, consulte {0}.",
-      "ru": "Подробные инструкции см. на {0}.",
-      "tr": "Ayrıntılı talimatlar için {0} sayfasına bakın.",
-      "uk": "Докладні інструкції див. на {0}."
+      "ru": "Подробные инструкции см. {0}.",
+      "tr": "Ayrıntılı talimatlar için {0} bakın.",
+      "uk": "Докладні інструкції див. {0}."
     },
     "footer_link": {
       "en": "here",
@@ -232,7 +243,7 @@
       "ko": "여기",
       "pt": "aqui",
       "ru": "здесь",
-      "tr": "burada",
+      "tr": "buraya",
       "uk": "тут"
     }
   }

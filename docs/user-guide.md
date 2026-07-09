@@ -10,23 +10,7 @@
 
 Pyxel is open source under the [MIT License](https://github.com/kitao/pyxel/blob/main/LICENSE) and free to use. Let's start making retro games with Pyxel!
 
-Also, if you like Pyxel, please give it a star on [GitHub](https://github.com/kitao/pyxel).
-
-![](images/pyxel_thanks.png)
-
-![](images/pyxel_book.png)
-
-![](images/02_jump_game.gif)
-
-![](images/10_platformer.gif)
-
-![](images/30sec_of_daylight.gif)
-
-![](images/megaball.gif)
-
-![](images/image_tilemap_editor.gif)
-
-![](images/sound_music_editor.gif)
+Also, this project is developed by one person, kept going by your [GitHub](https://github.com/kitao/pyxel) stars. If you enjoy it, please give it a star!
 
 ## Specifications
 
@@ -48,7 +32,7 @@ Also, if you like Pyxel, please give it a star on [GitHub](https://github.com/ki
 
 ![Palette](images/pyxel_palette.png)
 
-Pyxel's specifications and APIs are inspired by [PICO-8](https://www.lexaloffle.com/pico-8.php) and [TIC-80](https://tic80.com/).
+[GIMP palette file (.gpl)](pyxel.gpl)
 
 ## How to Install
 

@@ -2,7 +2,7 @@
 # Prerequisites:
 #   - git, make, cmake, rustup, python 3.11+, node.js
 #   - Windows: Git Bash
-#   - Linux: python3-pip, python3-venv, clang, libclang-dev, libsdl2-dev 2.32.0
+#   - Linux: python3-pip, python3-venv, clang, libclang-dev, libsdl2-dev 2.32.10
 #   - ./scripts/setup_venv
 #
 # Each new shell:
@@ -16,12 +16,8 @@
 #   - Run: make run
 #
 # WASM:
-#   - Setup once:
-#       git clone --branch 0.29.4 --depth 1 https://github.com/pyodide/pyodide.git pyodide
-#       cd pyodide/emsdk
-#       CMAKE_POLICY_VERSION_MINIMUM=3.5 make
-#   - Each new shell before WASM commands:
-#       source pyodide/emsdk/emsdk_env.sh
+#   - Requires Emscripten 5.0.3 (the version Pyodide uses)
+#   - Each new shell before WASM commands: source the emsdk environment
 #   - Lint: make lint-wasm
 #   - Build: make clean-wasm build-wasm
 #   - Run: make run-wasm
@@ -37,6 +33,9 @@ CRATES_DIR := $(ROOT_DIR)/crates
 DIST_DIR := $(ROOT_DIR)/dist
 PYTHON_DIR := $(ROOT_DIR)/python
 SCRIPTS_DIR := $(ROOT_DIR)/scripts
+
+# Extensionless Python scripts, passed to ruff explicitly since it only discovers *.py files
+PYTHON_SCRIPTS = $(shell grep -sl '^\#!/usr/bin/env python3' $(SCRIPTS_DIR)/*)
 
 # Build targets
 TARGET ?= $(shell rustc -vV | awk '/^host:/ {print $$2}')
@@ -56,12 +55,15 @@ endif
 CARGO_OPTS := --release --target $(TARGET)
 
 ifeq ($(TARGET),$(WASM_TARGET))
+# Link SDL2 from the PIC cache so the relocatable side module resolves it statically
+EM_SDL2_PIC_DIR := $(shell em-config CACHE)/sysroot/lib/wasm32-emscripten/pic
 RUSTFLAGS += \
 	$(RUST_REMAP_FLAGS) \
 	-C panic=abort \
 	-C target-feature=+simd128 \
 	-C link-arg=-fwasm-exceptions \
 	-C link-arg=-sSIDE_MODULE=2 \
+	-C link-arg=-L$(EM_SDL2_PIC_DIR) \
 	-C link-arg=-lSDL2 \
 	-C link-arg=-lhtml5
 CFLAGS += $(WASM_PREFIX_MAP_FLAGS)
@@ -76,7 +78,7 @@ CARGO_OPTS += --features sdl2_dynamic
 endif
 
 # Tool options
-CLIPPY_OPTS := -q -- --no-deps
+CLIPPY_OPTS := --all-targets -q -- --no-deps
 MATURIN_OPTS := --manylinux off
 
 # PyO3 environment
@@ -116,12 +118,13 @@ update:
 
 format:
 	@cd $(CRATES_DIR); cargo fmt -- --emit=files
-	@ruff format $(ROOT_DIR)
-	@npx prettier --write --log-level warn "$(ROOT_DIR)/**/*.{css,html,js,json}"
+	@ruff format $(ROOT_DIR) $(PYTHON_SCRIPTS)
+	@npx --no-install --prefix $(ROOT_DIR)/web prettier --write --log-level warn "$(ROOT_DIR)/**/*.{css,html,js,json}"
+	@$(SCRIPTS_DIR)/format_prose
 
 lint:
 	@cd $(CRATES_DIR); cargo clippy $(CARGO_OPTS) $(CLIPPY_OPTS)
-	@ruff check $(ROOT_DIR)
+	@ruff check $(ROOT_DIR) $(PYTHON_SCRIPTS)
 
 build:
 	@rustup component add rust-src
@@ -129,6 +132,7 @@ build:
 	@$(SCRIPTS_DIR)/generate_pyi_docstrings
 	@$(SCRIPTS_DIR)/generate_docs
 	@cp LICENSE $(PYTHON_DIR)/pyxel
+	@cp README.md $(PYTHON_DIR)/pyxel
 	@cd $(PYTHON_DIR); \
 		RUSTFLAGS="$(RUSTFLAGS)" \
 		CFLAGS="$(CFLAGS)" \

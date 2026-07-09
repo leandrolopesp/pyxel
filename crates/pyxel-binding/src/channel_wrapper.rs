@@ -60,6 +60,7 @@ impl Channel {
         let resume = resume.unwrap_or(false);
         let _lock = pyxel::AudioLock::lock();
 
+        // Dispatch supported sound input forms.
         cast_pyany! {
             snd,
 
@@ -107,6 +108,8 @@ impl Channel {
         self.inner_mut().play_position()
     }
 }
+
+// Module registration
 
 pub fn add_channel_class(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Channel>()?;

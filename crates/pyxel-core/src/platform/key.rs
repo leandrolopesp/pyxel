@@ -3,7 +3,7 @@ use paste::paste;
 pub type Key = u32;
 pub type KeyValue = i32;
 
-// Keyboard (https://wiki.libsdl.org/SDL2/SDLKeycodeLookup)
+// SDL keyboard keycodes (https://wiki.libsdl.org/SDL2/SDLKeycodeLookup)
 pub const KEY_UNKNOWN: Key = 0x00;
 pub const KEY_BACKSPACE: Key = 0x08;
 pub const KEY_TAB: Key = 0x09;
@@ -215,7 +215,7 @@ pub const KEY_RSHIFT: Key = 0x4000_00E5;
 pub const KEY_RALT: Key = 0x4000_00E6;
 pub const KEY_RGUI: Key = 0x4000_00E7;
 
-// Virtual keys
+// Pyxel virtual keys
 pub const VIRTUAL_KEY_START_INDEX: Key = 0x5000_0000;
 pub const KEY_NONE: Key = VIRTUAL_KEY_START_INDEX;
 pub const KEY_SHIFT: Key = VIRTUAL_KEY_START_INDEX + 1;
@@ -223,7 +223,7 @@ pub const KEY_CTRL: Key = VIRTUAL_KEY_START_INDEX + 2;
 pub const KEY_ALT: Key = VIRTUAL_KEY_START_INDEX + 3;
 pub const KEY_GUI: Key = VIRTUAL_KEY_START_INDEX + 4;
 
-// Mouse
+// Mouse input keys
 pub const MOUSE_KEY_START_INDEX: Key = 0x5000_0100;
 pub const MOUSE_POS_X: Key = MOUSE_KEY_START_INDEX;
 pub const MOUSE_POS_Y: Key = MOUSE_KEY_START_INDEX + 1;
@@ -235,7 +235,7 @@ pub const MOUSE_BUTTON_RIGHT: Key = MOUSE_KEY_START_INDEX + 6;
 pub const MOUSE_BUTTON_X1: Key = MOUSE_KEY_START_INDEX + 7;
 pub const MOUSE_BUTTON_X2: Key = MOUSE_KEY_START_INDEX + 8;
 
-// Gamepad
+// Gamepad input keys
 pub const GAMEPAD_KEY_START_INDEX: Key = 0x5000_0200;
 pub const GAMEPAD_KEY_STRIDE: Key = 0x100;
 pub const GAMEPAD_AXIS_COUNT: Key = 6;
@@ -243,27 +243,27 @@ pub const GAMEPAD_AXIS_COUNT: Key = 6;
 macro_rules! define_gamepad_keys {
     ($gamepad_name:ident, $start_index:expr) => {
         paste! {
-            pub const [<$gamepad_name _AXIS_LEFTX>]: Key  = $start_index + 0;
-            pub const [<$gamepad_name _AXIS_LEFTY>]: Key  = $start_index + 1;
-            pub const [<$gamepad_name _AXIS_RIGHTX>]: Key  = $start_index + 2;
-            pub const [<$gamepad_name _AXIS_RIGHTY>]: Key  = $start_index + 3;
-            pub const [<$gamepad_name _AXIS_TRIGGERLEFT>]: Key  = $start_index + 4;
-            pub const [<$gamepad_name _AXIS_TRIGGERRIGHT>]: Key  = $start_index + 5;
-            pub const [<$gamepad_name _BUTTON_A>]: Key  = $start_index + 6;
-            pub const [<$gamepad_name _BUTTON_B>]: Key  = $start_index + 7;
-            pub const [<$gamepad_name _BUTTON_X>]: Key  = $start_index + 8;
-            pub const [<$gamepad_name _BUTTON_Y>]: Key  = $start_index + 9;
-            pub const [<$gamepad_name _BUTTON_BACK>]: Key  = $start_index + 10;
-            pub const [<$gamepad_name _BUTTON_GUIDE>]: Key  = $start_index + 11;
-            pub const [<$gamepad_name _BUTTON_START>]: Key  = $start_index + 12;
-            pub const [<$gamepad_name _BUTTON_LEFTSTICK>]: Key  = $start_index + 13;
-            pub const [<$gamepad_name _BUTTON_RIGHTSTICK>]: Key  = $start_index + 14;
-            pub const [<$gamepad_name _BUTTON_LEFTSHOULDER>]: Key  = $start_index + 15;
-            pub const [<$gamepad_name _BUTTON_RIGHTSHOULDER>]: Key  = $start_index + 16;
-            pub const [<$gamepad_name _BUTTON_DPAD_UP>]: Key  = $start_index + 17;
-            pub const [<$gamepad_name _BUTTON_DPAD_DOWN>]: Key  = $start_index + 18;
-            pub const [<$gamepad_name _BUTTON_DPAD_LEFT>]: Key  = $start_index + 19;
-            pub const [<$gamepad_name _BUTTON_DPAD_RIGHT>]: Key  = $start_index + 20;
+            pub const [<$gamepad_name _AXIS_LEFTX>]: Key = $start_index + 0;
+            pub const [<$gamepad_name _AXIS_LEFTY>]: Key = $start_index + 1;
+            pub const [<$gamepad_name _AXIS_RIGHTX>]: Key = $start_index + 2;
+            pub const [<$gamepad_name _AXIS_RIGHTY>]: Key = $start_index + 3;
+            pub const [<$gamepad_name _AXIS_TRIGGERLEFT>]: Key = $start_index + 4;
+            pub const [<$gamepad_name _AXIS_TRIGGERRIGHT>]: Key = $start_index + 5;
+            pub const [<$gamepad_name _BUTTON_A>]: Key = $start_index + 6;
+            pub const [<$gamepad_name _BUTTON_B>]: Key = $start_index + 7;
+            pub const [<$gamepad_name _BUTTON_X>]: Key = $start_index + 8;
+            pub const [<$gamepad_name _BUTTON_Y>]: Key = $start_index + 9;
+            pub const [<$gamepad_name _BUTTON_BACK>]: Key = $start_index + 10;
+            pub const [<$gamepad_name _BUTTON_GUIDE>]: Key = $start_index + 11;
+            pub const [<$gamepad_name _BUTTON_START>]: Key = $start_index + 12;
+            pub const [<$gamepad_name _BUTTON_LEFTSTICK>]: Key = $start_index + 13;
+            pub const [<$gamepad_name _BUTTON_RIGHTSTICK>]: Key = $start_index + 14;
+            pub const [<$gamepad_name _BUTTON_LEFTSHOULDER>]: Key = $start_index + 15;
+            pub const [<$gamepad_name _BUTTON_RIGHTSHOULDER>]: Key = $start_index + 16;
+            pub const [<$gamepad_name _BUTTON_DPAD_UP>]: Key = $start_index + 17;
+            pub const [<$gamepad_name _BUTTON_DPAD_DOWN>]: Key = $start_index + 18;
+            pub const [<$gamepad_name _BUTTON_DPAD_LEFT>]: Key = $start_index + 19;
+            pub const [<$gamepad_name _BUTTON_DPAD_RIGHT>]: Key = $start_index + 20;
         }
     };
 }

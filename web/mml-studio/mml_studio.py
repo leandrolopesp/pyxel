@@ -2,10 +2,7 @@ import pyxel
 from js import window  # type: ignore
 
 
-def get_js_var(name, default):
-    return getattr(window, name, default)
-
-
+# Runtime visualization app
 class App:
     def __init__(self):
         pyxel.init(100, 20, title="Pyxel MML Studio", quit_key=pyxel.KEY_NONE)
@@ -14,42 +11,42 @@ class App:
         self.loop_enabled = False
 
         for i in range(pyxel.NUM_CHANNELS):
-            pyxel.sounds[i].mml(get_js_var(f"js_ch{i + 1}_mml", ""))
+            pyxel.sounds[i].mml(_get_js_var(f"js_ch{i + 1}_mml", ""))
 
-        if get_js_var("js_play", False):
+        if _get_js_var("js_play", False):
             self.start_playback()
 
         pyxel.run(self.update, self.draw)
 
     def start_playback(self):
-        self.loop_enabled = get_js_var("js_loop", False)
+        self.loop_enabled = _get_js_var("js_loop", False)
 
         pyxel.stop()
         for i in range(pyxel.NUM_CHANNELS):
             pyxel.play(i, i, loop=self.loop_enabled)
 
     def update(self):
-        if get_js_var("js_stop", False):
+        if _get_js_var("js_stop", False):
             pyxel.stop()
 
         is_playing = any(
             pyxel.play_pos(i) is not None for i in range(pyxel.NUM_CHANNELS)
         )
-        if is_playing and self.loop_enabled != get_js_var("js_loop", False):
+        if is_playing and self.loop_enabled != _get_js_var("js_loop", False):
             self.start_playback()
 
         solo_enabled = any(
-            get_js_var(f"js_solo{i + 1}", False) for i in range(pyxel.NUM_CHANNELS)
+            _get_js_var(f"js_solo{i + 1}", False) for i in range(pyxel.NUM_CHANNELS)
         )
         for i in range(pyxel.NUM_CHANNELS):
             pyxel.channels[i].gain = (
                 self.default_gain
-                if not solo_enabled or get_js_var(f"js_solo{i + 1}", False)
+                if not solo_enabled or _get_js_var(f"js_solo{i + 1}", False)
                 else 0.0
             )
 
         for i in range(pyxel.NUM_CHANNELS):
-            if get_js_var(f"js_mute{i + 1}", False):
+            if _get_js_var(f"js_mute{i + 1}", False):
                 pyxel.channels[i].gain = 0.0
 
     def draw(self):
@@ -65,7 +62,8 @@ class App:
                 continue
 
             if total_sec is None:
-                play_sec = play_sec % 5  # Show progress in 5-second window
+                # Show progress in a fixed window for open-ended playback.
+                play_sec = play_sec % 5
                 total_sec = 5
             elif total_sec == 0:
                 continue
@@ -78,4 +76,10 @@ class App:
                 pyxel.rect(x - 1, y - 1, 3, 3, 5)
 
 
+# JavaScript bridge helpers
+def _get_js_var(name, default):
+    return getattr(window, name, default)
+
+
+# Browser entry point
 App()

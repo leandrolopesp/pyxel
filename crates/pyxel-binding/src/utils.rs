@@ -273,7 +273,7 @@ macro_rules! impl_python_sequence_write {
                     let new_values: Vec<$set_type> = value.extract()?;
                     if indices.step == 1 {
                         let start = indices.start as usize;
-                        let end = indices.stop as usize;
+                        let end = indices.stop.max(indices.start) as usize;
                         let vec = $list_mut(&self.inner);
                         vec.splice(start..end, new_values.into_iter().map($to_raw));
                     } else {
@@ -501,11 +501,13 @@ macro_rules! define_wrapper {
                 Self { inner }
             }
 
+            // Some wrappers need only one accessor, but keeping both keeps the macro uniform.
             #[allow(dead_code)]
             fn inner_ref(&self) -> &$inner_type {
                 rc_ref!(self.inner)
             }
 
+            // Python methods mutate shared engine resources through PyO3 &self receivers.
             #[allow(clippy::mut_from_ref)]
             fn inner_mut(&self) -> &mut $inner_type {
                 rc_mut!(self.inner)

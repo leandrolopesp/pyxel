@@ -32,6 +32,7 @@ fn play(
     let should_loop = r#loop.unwrap_or(false);
     let resume = resume.unwrap_or(false);
 
+    // Dispatch supported sound input forms.
     cast_pyany! {
         snd,
 
@@ -152,6 +153,8 @@ fn music(msc: u32) -> PyResult<Music> {
         .map(Music::wrap)
         .ok_or_else(|| PyValueError::new_err("Invalid music index"))
 }
+
+// Module registration
 
 pub fn add_audio_functions(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(play, m)?)?;

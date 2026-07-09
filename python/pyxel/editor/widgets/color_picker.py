@@ -53,10 +53,10 @@ class ColorPicker(Widget):
             if value is not None:
                 self.secondary_color_var = value
             return
-        if key == pyxel.MOUSE_BUTTON_LEFT:
-            value = self.check_value(x, y)
-            if value is not None:
-                self.value_var = value
+
+        value = self.check_value(x, y)
+        if value is not None:
+            self.value_var = value
 
     def __on_mouse_drag(self, key, x, y, dx, dy):
         self.__on_mouse_down(key, x, y)
@@ -69,14 +69,14 @@ class ColorPicker(Widget):
         pyxel.user_pal()
         for yi in range(self._num_rows):
             for xi in range(self._num_cols):
-                color = yi * self._num_cols + xi
-                if color < pyxel.num_user_colors:
+                col = yi * self._num_cols + xi
+                if col < pyxel.num_user_colors:
                     pyxel.rect(
                         self.x + xi * cw + 1,
                         self.y + yi * ch + 1,
                         cw - 1,
                         ch - 1,
-                        color,
+                        col,
                     )
         pyxel.pal()
 
@@ -84,6 +84,7 @@ class ColorPicker(Widget):
         col = self.value_var
         if col >= pyxel.num_user_colors:
             return
+
         cw = self._color_width
         ch = self._color_height
         x = self.x + cw * (col % self._num_cols) + cw // 2

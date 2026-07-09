@@ -53,9 +53,7 @@ class SoundEditor(EditorBase):
         self.new_var("octave_var", 2)
 
         self.new_var("is_playing_var", None)
-        self.add_var_event_listener(
-            "is_playing_var", "get", self.__on_is_playing_var_get
-        )
+        self.add_var_event_listener("is_playing_var", "get", self.__on_is_playing_get)
 
         # Initialize sound picker
         self._sound_picker = NumberPicker(
@@ -78,7 +76,7 @@ class SoundEditor(EditorBase):
 
         # Initialize beat picker
         self._beats_picker = NumberPicker(
-            self, 150, 17, min_value=1, max_value=16, value=8
+            self, 154, 17, min_value=1, max_value=16, value=8
         )
         self._beats_picker.add_event_listener("change", self.__on_beats_picker_change)
         self.add_number_picker_help(self._beats_picker)
@@ -208,11 +206,11 @@ class SoundEditor(EditorBase):
 
     # Event handlers
 
-    def __on_is_playing_var_get(self, value):
+    def __on_is_playing_get(self, value):
         return pyxel.play_pos(0) is not None
 
     def __on_sound_picker_change(self, value):
-        self._speed_picker.value = pyxel.sounds[value].speed
+        self._speed_picker.value_var = pyxel.sounds[value].speed
         self._beats_picker.value = self._sound_beats[value]
 
     def __on_sound_picker_mouse_hover(self, _x, _y):
@@ -278,4 +276,4 @@ class SoundEditor(EditorBase):
         self.draw_panel(11, 16, 218, 157)
         pyxel.text(16, 18, "SOUND", TEXT_LABEL_COLOR)
         pyxel.text(74, 18, "SPEED", TEXT_LABEL_COLOR)
-        pyxel.text(132, 18, "BARS", TEXT_LABEL_COLOR)
+        pyxel.text(132, 18, "BEATS", TEXT_LABEL_COLOR)

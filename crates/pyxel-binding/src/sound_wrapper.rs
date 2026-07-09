@@ -1,6 +1,8 @@
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 
+// Python sequence wrappers for mutable sound component lists
+
 macro_rules! wrap_sound_as_python_list {
     ($wrapper_name:ident, $value_type:ty, $field_name:ident) => {
         wrap_as_python_primitive_sequence!(
@@ -14,11 +16,7 @@ macro_rules! wrap_sound_as_python_list {
             (|inner: &pyxel::RcSound| -> &mut Vec<$value_type> { &mut rc_mut!(inner).$field_name }),
             Vec<$value_type>,
             (|inner: &pyxel::RcSound, list| rc_mut!(inner).$field_name = list),
-            (|inner: &pyxel::RcSound| rc_ref!(inner)
-                .$field_name
-                .iter()
-                .copied()
-                .collect::<Vec<$value_type>>())
+            (|inner: &pyxel::RcSound| rc_ref!(inner).$field_name.clone())
         );
     };
 }
@@ -119,7 +117,7 @@ impl Sound {
             return Ok(());
         };
 
-        // Detect old MML syntax by presence of 'x'/'X' or '~'
+        // Detect old MML syntax by the presence of 'x'/'X' or '~'.
         if code.contains('x') || code.contains('X') || code.contains('~') {
             deprecation_warning!(
                 OLD_MML_ONCE,
@@ -146,7 +144,7 @@ impl Sound {
         self.inner_mut().old_mml(code).map_err(PyException::new_err)
     }
 
-    // File operations
+    // PCM file operations
 
     #[pyo3(signature = (filename=None))]
     fn pcm(&self, filename: Option<&str>) -> PyResult<()> {
@@ -167,10 +165,14 @@ impl Sound {
             .map_err(PyException::new_err)
     }
 
+    // Playback duration
+
     fn total_sec(&self) -> Option<f32> {
         self.inner_ref().total_seconds()
     }
 }
+
+// Module registration
 
 pub fn add_sound_class(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Notes>()?;

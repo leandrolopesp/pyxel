@@ -4,6 +4,8 @@ if sys.platform == "linux":
     import ctypes
     from pathlib import Path
 
+    # Preload SDL2 with RTLD_GLOBAL so the binding can resolve its symbols.
+    # Fall back to the bundled copy and let the binding surface import failures.
     try:
         ctypes.CDLL("libSDL2-2.0.so.0", mode=ctypes.RTLD_GLOBAL)
     except OSError:

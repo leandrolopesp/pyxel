@@ -27,7 +27,7 @@ def _make_app(root: Path) -> Path:
     return app_dir
 
 
-# Public commands
+# Public CLI command tests
 
 
 class TestCliDispatcher:
@@ -203,7 +203,7 @@ class TestPackage:
         assert (tmp_path / "my_app.pyxapp").is_file()
 
     def test_with_relative_paths_from_app_dir(self, tmp_path, monkeypatch):
-        # Regression for `pyxel package . main.py` run from inside app_dir
+        # Regression for `pyxel package . main.py` run from inside app_dir.
         app_dir = _make_app(tmp_path)
         monkeypatch.chdir(app_dir)
         pyxel.cli.package_pyxel_app(".", "main.py")
@@ -249,20 +249,24 @@ class TestPackage:
         assert metadata["title"] == "My App"
         assert metadata["author"] == "Me"
 
-    def test_rejects_non_py_startup_script(self, tmp_path, monkeypatch):
+    def test_rejects_non_py_startup_script(self, capsys, tmp_path, monkeypatch):
         app_dir = _make_app(tmp_path)
         (app_dir / "main.txt").write_text("", encoding="utf-8")
         monkeypatch.chdir(tmp_path)
         with pytest.raises(SystemExit):
             pyxel.cli.package_pyxel_app("my_app", "my_app/main.txt")
+        assert "'package' command only accepts .py files" in capsys.readouterr().out
 
-    def test_rejects_startup_script_outside_app_dir(self, tmp_path, monkeypatch):
+    def test_rejects_startup_script_outside_app_dir(
+        self, capsys, tmp_path, monkeypatch
+    ):
         _make_app(tmp_path)
         outside = tmp_path / "outside.py"
         outside.write_text("", encoding="utf-8")
         monkeypatch.chdir(tmp_path)
         with pytest.raises(SystemExit):
             pyxel.cli.package_pyxel_app("my_app", str(outside))
+        assert "specified file is not under the directory" in capsys.readouterr().out
 
     def test_stdout_shows_added_files(self, capsys, tmp_path, monkeypatch):
         _make_app(tmp_path)
@@ -273,9 +277,24 @@ class TestPackage:
         assert "added 'my_app/assets/data.txt'" in out
         assert f"added 'my_app/{pyxel.APP_STARTUP_SCRIPT_FILE}'" in out
 
+    def test_removes_startup_pointer_if_packaging_fails(self, tmp_path, monkeypatch):
+        app_dir = _make_app(tmp_path)
+        monkeypatch.chdir(tmp_path)
+
+        def raise_on_write(*_args, **_kwargs):
+            raise RuntimeError("zip write failed")
+
+        monkeypatch.setattr(zipfile.ZipFile, "write", raise_on_write)
+
+        with pytest.raises(RuntimeError, match="zip write failed"):
+            pyxel.cli.package_pyxel_app("my_app", "my_app/main.py")
+
+        assert not (app_dir / pyxel.APP_STARTUP_SCRIPT_FILE).exists()
+
 
 class TestApp2exe:
     def test_exe_runs_with_resource(self, tmp_path, monkeypatch):
+        # Optional integration check runs only when PyInstaller is installed.
         pytest.importorskip("PyInstaller")
         app_dir = tmp_path / "my_app"
         (app_dir / "assets").mkdir(parents=True)
@@ -357,6 +376,16 @@ class TestApp2html:
         assert "my_app/assets/data.txt" in names
         assert f"my_app/{pyxel.APP_STARTUP_SCRIPT_FILE}" in names
 
+    def test_html_escapes_app_name_as_javascript_string(self, tmp_path, monkeypatch):
+        pyxel_app_file = tmp_path / 'bad"name\\line.pyxapp'
+        pyxel_app_file.write_bytes(b"payload")
+        monkeypatch.chdir(tmp_path)
+
+        pyxel.cli.create_html_from_pyxel_app(str(pyxel_app_file))
+
+        html = (tmp_path / 'bad"name\\line.html').read_text(encoding="utf-8")
+        assert 'name: "bad\\"name\\\\line.pyxapp"' in html
+
     def test_missing_pyxapp_exits_with_error(self, capsys, tmp_path):
         with pytest.raises(SystemExit):
             pyxel.cli.create_html_from_pyxel_app(str(tmp_path / "nope.pyxapp"))
@@ -403,7 +432,7 @@ class TestCopyExamples:
         assert (dst / "01_hello_pyxel.py").is_file()
 
 
-# Private helpers
+# Private helper tests
 
 
 class TestErrorHelpers:
@@ -480,7 +509,7 @@ class TestWatchHelpers:
         monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
         watch_dir = tmp_path / pyxel.BASE_DIR / "watch"
         watch_dir.mkdir(parents=True)
-        # Use a PID that almost certainly doesn't exist
+        # Use a PID that almost certainly doesn't exist.
         dead_file = watch_dir / "999999"
         dead_file.touch()
         pyxel.cli._create_watch_state_file()

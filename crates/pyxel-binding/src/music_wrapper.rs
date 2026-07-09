@@ -2,6 +2,8 @@ use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PySlice, PyTuple};
 
+// Python sequence wrappers for the mutable music sequences
+
 #[derive(Clone)]
 pub struct SeqRef {
     inner: pyxel::RcMusic,
@@ -38,6 +40,7 @@ impl Seqs {
         rc_ref!(self.inner)
     }
 
+    // Mirrors the wrapper macro's Rc<UnsafeCell> interior mutability.
     #[allow(clippy::mut_from_ref)]
     fn inner_mut(&self) -> &mut pyxel::Music {
         rc_mut!(self.inner)
@@ -112,7 +115,7 @@ impl Seqs {
             let new_values: Vec<Vec<u32>> = value.extract()?;
             if indices.step == 1 {
                 let start = indices.start as usize;
-                let end = indices.stop as usize;
+                let end = indices.stop.max(indices.start) as usize;
                 music.seqs.splice(start..end, new_values);
             } else {
                 let idx_list = collect_slice_indices!(indices.start, indices.stop, indices.step);
@@ -273,6 +276,8 @@ impl Music {
         Seqs::wrap(self.inner.clone())
     }
 }
+
+// Module registration
 
 pub fn add_music_class(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Seqs>()?;

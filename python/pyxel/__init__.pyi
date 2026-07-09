@@ -1101,8 +1101,8 @@ class Tilemap:
             x: Destination X
             y: Destination Y
             tm: Tilemap number (0-7) or Tilemap instance
-            u: Source X in the image bank
-            v: Source Y in the image bank
+            u: Source X in the tilemap
+            v: Source Y in the tilemap
             w: Width (negative to flip)
             h: Height (negative to flip)
             tilekey: Transparent tile
@@ -1270,7 +1270,7 @@ class Sound:
         """
         ...
     def save(self, filename: str, sec: float, ffmpeg: bool = False) -> None:
-        """Create a WAV file of the sound for the specified duration in seconds.
+        """Create a WAV file from the sound with the specified duration in seconds.
 
         Args:
             filename: Output WAV file name
@@ -1312,7 +1312,7 @@ class Music:
         """
         ...
     def save(self, filename: str, sec: float, ffmpeg: bool = False) -> None:
-        """Create a WAV file of the music for the specified duration in seconds.
+        """Create a WAV file from the music with the specified duration in seconds.
 
         Args:
             filename: Output WAV file name
@@ -1650,9 +1650,9 @@ def set_dropped_files(files: list[str]) -> None:
 colors: list[int]
 """List of the palette display colors. Specified by 24-bit numerical value. Supports Python list operations."""
 images: list[Image]
-"""List of the image banks (instances of the Image class) (0-2)."""
+"""Image banks (Image instances) (0-2)."""
 tilemaps: list[Tilemap]
-"""List of the tilemaps (instances of the Tilemap class) (0-7)."""
+"""Tilemaps (Tilemap instances) (0-7)."""
 screen: Image
 """The screen image (Image class instance)."""
 cursor: Image
@@ -2005,13 +2005,13 @@ def text(x: float, y: float, s: str, col: int, font: Font | None = None) -> None
 
 # Audio
 channels: list[Channel]
-"""List of the channels (instances of the Channel class) (0-3)."""
+"""Audio channels (Channel instances) (0-3)."""
 tones: list[Tone]
-"""List of the tone definitions (instances of the Tone class) (0-3)."""
+"""Tone definitions (Tone instances) (0-3)."""
 sounds: list[Sound]
-"""List of the sounds (instances of the Sound class) (0-63)."""
+"""Sounds (Sound instances) (0-63)."""
 musics: list[Music]
-"""List of music tracks (instances of the Music class) (0-7)."""
+"""Music tracks (Music instances) (0-7)."""
 
 def play(
     ch: int,

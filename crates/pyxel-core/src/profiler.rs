@@ -8,6 +8,8 @@ pub struct Profiler {
 }
 
 impl Profiler {
+    // Construction
+
     pub fn new(measure_frame_count: u32) -> Self {
         assert!(measure_frame_count >= 1, "invalid measure frame count");
         Self {
@@ -20,6 +22,8 @@ impl Profiler {
         }
     }
 
+    // Metrics
+
     pub const fn average_time(&self) -> f32 {
         self.average_time
     }
@@ -28,12 +32,15 @@ impl Profiler {
         self.average_fps
     }
 
+    // Measurement
+
     pub fn start(&mut self, tick_count: u32) {
         self.start_time = tick_count;
     }
 
     pub fn end(&mut self, tick_count: u32) {
-        self.total_time += tick_count - self.start_time;
+        // The tick counter wraps at u32::MAX (~49.7 days); wrapping_sub keeps the delta correct.
+        self.total_time += tick_count.wrapping_sub(self.start_time);
         self.measured_frame_count += 1;
 
         if self.measured_frame_count >= self.measure_frame_count {
@@ -118,21 +125,21 @@ mod tests {
 
     #[test]
     fn test_zero_time_frame() {
-        // start and end at the same tick -> 0ms frame time
+        // Starting and ending at the same tick produces a zero millisecond frame.
         let mut p = Profiler::new(1);
         p.start(100);
         p.end(100);
         assert_eq!(p.average_time(), 0.0);
-        // FPS is inf (1000/0), but we just verify it doesn't panic
-        assert!(p.average_fps().is_infinite());
+        // Dividing by zero frame time yields positive infinity.
+        assert_eq!(p.average_fps(), f32::INFINITY);
     }
 
     #[test]
     fn test_tick_count_wraparound() {
-        // u32 subtraction wraps around correctly
+        // Tick counter wrapped past u32::MAX: true delta = 10
         let mut p = Profiler::new(1);
         p.start(u32::MAX - 5);
-        p.end(u32::MAX); // delta = 5
-        assert_eq!(p.average_time(), 5.0);
+        p.end(4);
+        assert_eq!(p.average_time(), 10.0);
     }
 }

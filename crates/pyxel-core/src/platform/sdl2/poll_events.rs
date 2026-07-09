@@ -19,6 +19,7 @@ use super::super::key::{
     MOUSE_POS_Y, MOUSE_WHEEL_X, MOUSE_WHEEL_Y,
 };
 use super::platform_sdl2::PlatformSdl2;
+// This SDL bridge intentionally uses the generated C names directly.
 #[allow(clippy::wildcard_imports)]
 use super::sdl2_sys::*;
 
@@ -44,9 +45,14 @@ static SCAN_CORRECTION_SCRIPTS: OnceLock<[CString; SCAN_CORRECTION_SCRIPT_COUNT]
 #[cfg(target_os = "emscripten")]
 fn scan_correction_scripts() -> &'static [CString; SCAN_CORRECTION_SCRIPT_COUNT] {
     SCAN_CORRECTION_SCRIPTS.get_or_init(|| {
-        std::array::from_fn(|i| CString::new(format!("_scanCorrection[{i}]||0;")).unwrap())
+        std::array::from_fn(|i| {
+            CString::new(format!("_scanCorrection[{i}]||0;"))
+                .expect("scan correction script is built from a numeric index")
+        })
     })
 }
+
+// Gamepad lifecycle helpers
 
 pub fn open_gamepad(device_index: i32) -> Option<(i32, *mut SDL_GameController)> {
     let controller = unsafe { SDL_GameControllerOpen(device_index) };
@@ -203,12 +209,14 @@ impl PlatformSdl2 {
         // Mouse Motion (polling)
 
         let (mouse_x, mouse_y) = if self.is_wayland || cfg!(target_os = "emscripten") {
-            // Wayland: SDL_GetGlobalMouseState is unsupported, so use SDL_GetMouseState which returns window-relative coordinates from SDL's internal event state.
+            // Wayland: SDL_GetGlobalMouseState is unsupported, so use
+            // SDL_GetMouseState which returns SDL's window-relative event state.
             let (mut x, mut y) = (0, 0);
             unsafe { SDL_GetMouseState(&raw mut x, &raw mut y) };
             (x, y)
         } else {
-            // X11: SDL_GetGlobalMouseState tracks the cursor even outside the window, which is useful for drag operations.
+            // X11: SDL_GetGlobalMouseState tracks the cursor even outside the
+            // window, which is useful for drag operations.
             let (mut gx, mut gy) = (0, 0);
             unsafe { SDL_GetGlobalMouseState(&raw mut gx, &raw mut gy) };
             let (wx, wy) = self.window_pos();
@@ -273,6 +281,8 @@ impl PlatformSdl2 {
     }
 }
 
+// SDL-to-Pyxel event conversion helpers
+
 fn mouse_button_to_key(button: u32) -> Key {
     match button {
         SDL_BUTTON_LEFT => MOUSE_BUTTON_LEFT,
@@ -286,9 +296,9 @@ fn mouse_button_to_key(button: u32) -> Key {
 
 // Correct SDL2 keycode on Emscripten for non-US keyboard layouts.
 // Emscripten's SDL2 maps physical keys through a US-layout table, producing
-// incorrect keycodes for JIS and other non-US keyboards. This function looks
-// up the actual character from a persistent per-scancode correction map
-// (populated by keydown listeners in pyxel.js).
+// incorrect keycodes for JIS and other non-US keyboards. Look up the actual
+// character from a persistent per-scancode correction map (populated by keydown
+// listeners in pyxel.js).
 //
 // Using a persistent map keyed by SDL scancode (physical key) instead of a
 // per-event queue ensures that keydown and keyup for the same physical key

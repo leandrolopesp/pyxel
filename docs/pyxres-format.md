@@ -39,7 +39,7 @@ format_version = 1
 ...
 ```
 
-The `format_version` field and all four section arrays (`images`, `tilemaps`, `sounds`, `musics`) are **required**. Empty resources are represented as empty arrays (e.g., `notes = []`). Pyxel always writes all entries (3 images, 8 tilemaps, 64 sounds, 8 musics), but files with fewer entries are accepted on load.
+The `format_version` field and all four section arrays (`images`, `tilemaps`, `sounds`, `musics`) are **required**. Empty fields inside an entry use empty arrays (e.g., `notes = []`), and a section intentionally skipped by `save(..., exclude_*)` is written as an empty array. A normal save writes the runtime banks (3 images, 8 tilemaps, 64 sounds, 8 musics); files with fewer entries are accepted on load.
 
 Pyxel currently writes `format_version = 1` for maximum backward compatibility. On load, files with format version up to **4** (the current maximum) are accepted. Files that contain the legacy archive layout (`pyxel_resource/version` + separate files) are detected and loaded with automatic conversion.
 
@@ -116,7 +116,7 @@ All fields are required. Empty sounds use empty arrays (e.g., `notes = []`).
 | `effects` | array of u8 | 0 = None, 1 = Slide, 2 = Vibrato, 3 = FadeOut, 4 = Half-FadeOut, 5 = Quarter-FadeOut |
 | `speed` | u16 | Playback speed in ticks per note (1 tick = 1/120 second). Default: 30 |
 
-The `tones`, `volumes`, and `effects` arrays may be shorter than `notes` due to trailing-value compression. When loading, the last value in each array is repeated to match the length of `notes`.
+The `tones`, `volumes`, and `effects` arrays are stored exactly as set on the sound and may be shorter than `notes`. During playback, values are read cyclically (index modulo array length), and an empty array falls back to the default: tone 0 (Triangle), volume 7, effect 0 (None).
 
 **Note mapping:** Notes are encoded as `base + octave × 12`, where C=0, D=2, E=4, F=5, G=7, A=9, B=11, and octave ranges from 0 to 4. For example, C0=0, A4=57, B4=59.
 

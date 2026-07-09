@@ -6,7 +6,7 @@ use std::str;
 
 use tar::Archive;
 
-const SDL2_VERSION: &str = "2.32.0"; // Emscripten 4.0.9 uses SDL 2.32.0
+const SDL2_VERSION: &str = "2.32.10"; // Emscripten 5.0.3 uses SDL 2.32.10
 
 struct SDL2BindingsBuilder {
     target: String,
@@ -135,6 +135,7 @@ impl SDL2BindingsBuilder {
             }
 
             if self.target_os.contains("windows") {
+                // Static SDL2 needs platform libraries that dynamic SDL2 brings in transitively.
                 println!("cargo::rustc-link-lib=shell32");
                 println!("cargo::rustc-link-lib=user32");
                 println!("cargo::rustc-link-lib=gdi32");
@@ -148,6 +149,7 @@ impl SDL2BindingsBuilder {
                 println!("cargo::rustc-link-lib=dxguid");
                 println!("cargo::rustc-link-lib=setupapi");
             } else if self.target_os == "darwin" {
+                // Static SDL2 needs platform frameworks that dynamic SDL2 brings in transitively.
                 println!("cargo::rustc-link-lib=framework=Cocoa");
                 println!("cargo::rustc-link-lib=framework=IOKit");
                 println!("cargo::rustc-link-lib=framework=Carbon");
@@ -216,6 +218,7 @@ impl SDL2BindingsBuilder {
         }
     }
 
+    // Collect include paths for static, Emscripten, or system SDL2.
     fn include_flags(&self) -> Vec<String> {
         let mut include_flags = Vec::new();
 

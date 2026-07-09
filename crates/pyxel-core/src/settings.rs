@@ -4,8 +4,8 @@ use crate::key::{Key, KEY_ESCAPE};
 use crate::sound::{SoundEffect, SoundSpeed, SoundTone, SoundVolume};
 use crate::tone::{ToneMode, ToneSample};
 
-// System
-pub const VERSION: &str = "2.9.5";
+// System defaults
+pub const VERSION: &str = "2.9.7";
 pub const BASE_DIR: &str = ".pyxel";
 pub const WINDOW_STATE_ENV: &str = "PYXEL_WINDOW_STATE";
 pub const WATCH_STATE_FILE_ENV: &str = "PYXEL_WATCH_STATE_FILE";
@@ -16,11 +16,10 @@ pub const DEFAULT_QUIT_KEY: Key = KEY_ESCAPE;
 pub const DEFAULT_CAPTURE_SCALE: u32 = 2;
 pub const DEFAULT_CAPTURE_SEC: u32 = 10;
 pub const WINDOW_TO_DISPLAY_RATIO: f32 = 0.75;
-#[allow(clippy::unreadable_literal)]
 pub const BACKGROUND_COLOR: Rgb24 = 0x202224;
 pub const MAX_FRAME_DELAY_MS: u32 = 100;
 pub const NUM_MEASURE_FRAMES: u32 = 10;
-pub const NUM_SCREEN_TYPES: u32 = 3;
+pub const NUM_SCREEN_MODES: u32 = 3;
 pub const ICON_SIZE: u32 = 16;
 pub const ICON_SCALE: u32 = 4;
 pub const ICON_COLKEY: Option<Color> = Some(0);
@@ -43,7 +42,7 @@ pub const ICON_DATA: [&str; ICON_SIZE as usize] = [
     "0000000110000000",
 ];
 
-// Resource
+// Resource file settings
 pub const APP_FILE_EXTENSION: &str = ".pyxapp";
 pub const APP_STARTUP_SCRIPT_FILE: &str = ".pyxapp_startup_script";
 pub const RESOURCE_FILE_EXTENSION: &str = ".pyxres";
@@ -51,7 +50,7 @@ pub const RESOURCE_ARCHIVE_NAME: &str = "pyxel_resource.toml";
 pub const RESOURCE_FORMAT_VERSION: u32 = 4;
 pub const PALETTE_FILE_EXTENSION: &str = ".pyxpal";
 
-// Graphics
+// Graphics constants
 pub const NUM_COLORS: u32 = 16;
 pub const MAX_COLORS: u32 = 256;
 pub const NUM_IMAGES: u32 = 3;
@@ -61,9 +60,10 @@ pub const TILEMAP_SIZE: u32 = 256;
 pub const TILE_SIZE: u32 = 8;
 pub const TILE_SHIFT: u32 = 3; // log2(TILE_SIZE)
 pub const TILE_MASK: i32 = TILE_SIZE as i32 - 1;
-#[allow(clippy::unreadable_literal)]
 pub const DEFAULT_COLORS: [Rgb24; NUM_COLORS as usize] = [
-    0x000000, 0x2b335f, 0x7e2072, 0x19959c, 0x8b4852, 0x395c98, 0xa9c1ff, 0xeeeeee, //
+    // Palette indices 0-7
+    0x000000, 0x2b335f, 0x7e2072, 0x19959c, 0x8b4852, 0x395c98, 0xa9c1ff, 0xeeeeee,
+    // Palette indices 8-15
     0xd4186c, 0xd38441, 0xe9c35b, 0x70c6a9, 0x7696de, 0xa3a3a3, 0xff9798, 0xedc7b0,
 ];
 pub const COLOR_BLACK: Color = 0;
@@ -92,7 +92,6 @@ pub const MAX_FONT_CODE: char = '\x7F';
 pub const NUM_FONT_COLS: u32 = 16;
 pub const FONT_WIDTH: u32 = 4;
 pub const FONT_HEIGHT: u32 = 6;
-#[allow(clippy::unreadable_literal)]
 pub const FONT_DATA: [u32; MAX_FONT_CODE as usize - MIN_FONT_CODE as usize + 1] = [
     0x000000, 0x444040, 0xaa0000, 0xaeaea0, 0x6c6c40, 0x824820, 0x4a4ac0, 0x440000, 0x244420,
     0x844480, 0xa4e4a0, 0x04e400, 0x000480, 0x00e000, 0x000040, 0x224880, 0x6aaac0, 0x4c4440,
@@ -107,7 +106,7 @@ pub const FONT_DATA: [u32; MAX_FONT_CODE as usize - MIN_FONT_CODE as usize + 1] 
     0x0e24e0, 0x64c460, 0x444440, 0xc464c0, 0x6c0000, 0xeeeee0,
 ];
 
-// Audio
+// Audio constants
 pub const AUDIO_CLOCK_RATE: u32 = 1_789_773; // NTSC NES APU clock rate
 pub const AUDIO_SAMPLE_RATE: u32 = 22_050; // 22.05kHz
 pub const AUDIO_SAMPLE_BITS: u32 = 16;
@@ -124,9 +123,6 @@ pub const VOICE_CONTROL_RATE: u32 = 60;
 pub const NOTE_INTERP_CLOCKS: u32 = AUDIO_CLOCK_RATE / 1000; // 1 / 1000 = 1ms
 pub const TICKS_PER_QUARTER_NOTE: u32 = 48;
 pub const SOUND_TICKS_PER_SECOND: u32 = 120;
-
-pub const WAVETABLE_LENGTH: u32 = 32;
-pub const WAVETABLE_LEVELS: u32 = 16;
 
 pub const VIBRATO_PERIOD_TICKS: u32 = SOUND_TICKS_PER_SECOND / 6; // 6Hz
 pub const VIBRATO_DEPTH_CENTS: u32 = 25; // -25 to 25 cents
@@ -159,7 +155,9 @@ pub const DEFAULT_TONE_TRIANGLE: (ToneMode, u32, [ToneSample; 32], ChannelGain) 
     ToneMode::Wavetable,
     4,
     [
-        8, 9, 10, 11, 12, 13, 14, 15, 15, 14, 13, 12, 11, 10, 9, 8, //
+        // Rising and falling triangle samples
+        8, 9, 10, 11, 12, 13, 14, 15, 15, 14, 13, 12, 11, 10, 9, 8,
+        // Negative half-cycle samples
         7, 6, 5, 4, 3, 2, 1, 0, 0, 1, 2, 3, 4, 5, 6, 7,
     ],
     1.0,

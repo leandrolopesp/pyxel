@@ -1,4 +1,6 @@
 use std::ffi::{CStr, CString};
+#[cfg(any(target_os = "emscripten", test))]
+use std::fmt::Write as _;
 use std::mem::MaybeUninit;
 use std::os::raw::{c_int, c_void};
 use std::ptr::{copy_nonoverlapping, null_mut};
@@ -9,10 +11,45 @@ use glow::Context;
 
 use super::super::facade::GlProfile;
 use super::poll_events::{open_gamepad, GamepadSlot};
+// This SDL bridge intentionally uses the generated C names directly.
 #[allow(clippy::wildcard_imports)]
 use super::sdl2_sys::*;
 
 static AUDIO_DEVICE_ID: AtomicU32 = AtomicU32::new(0);
+type AudioCallback = Box<dyn FnMut(&mut [i16])>;
+
+#[cfg(target_os = "emscripten")]
+// Browser callbacks do not provide elapsed time, so use Pyxel's nominal frame step.
+const EMSCRIPTEN_FRAME_DELTA_MS: f32 = 10.0;
+
+#[cfg(any(target_os = "emscripten", test))]
+fn browser_save_script(filename: &str) -> CString {
+    let mut quoted_filename = String::from("\"");
+    for c in filename.chars() {
+        match c {
+            '"' => quoted_filename.push_str("\\\""),
+            '\\' => quoted_filename.push_str("\\\\"),
+            '\n' => quoted_filename.push_str("\\n"),
+            '\r' => quoted_filename.push_str("\\r"),
+            '\t' => quoted_filename.push_str("\\t"),
+            '\u{08}' => quoted_filename.push_str("\\b"),
+            '\u{0c}' => quoted_filename.push_str("\\f"),
+            '\u{2028}' => quoted_filename.push_str("\\u2028"),
+            '\u{2029}' => quoted_filename.push_str("\\u2029"),
+            '\0'..='\u{1f}' => write!(&mut quoted_filename, "\\u{:04x}", c as u32)
+                .expect("writing to String cannot fail"),
+            _ => quoted_filename.push(c),
+        }
+    }
+    quoted_filename.push('"');
+    CString::new(format!("_savePyxelFile({quoted_filename});"))
+        .expect("browser save script is built from escaped filename text")
+}
+
+fn window_title_c_string(title: &str) -> CString {
+    let title = title.replace('\0', " ");
+    CString::new(title).expect("window title NUL bytes are replaced")
+}
 
 #[cfg(target_os = "emscripten")]
 extern "C" {
@@ -28,19 +65,35 @@ extern "C" {
 
 #[cfg(target_os = "emscripten")]
 unsafe extern "C" fn main_loop_callback<F: FnMut(f32)>(arg: *mut c_void) {
-    (*arg.cast::<F>())(10.0);
+    // Emscripten schedules the loop by fps, so pass a small fixed delta that
+    // keeps the core catch-up path from replaying updates on browser frames.
+    (*arg.cast::<F>())(EMSCRIPTEN_FRAME_DELTA_MS);
 }
 
 extern "C" fn audio_callback(userdata: *mut c_void, stream: *mut u8, len: c_int) {
-    let callback = unsafe { &mut *userdata.cast::<Box<dyn FnMut(&mut [i16])>>() };
+    let callback = unsafe { &mut *userdata.cast::<AudioCallback>() };
     let stream = unsafe { from_raw_parts_mut(stream.cast::<i16>(), len as usize / 2) };
     (*callback)(stream);
+}
+
+#[cfg(target_os = "emscripten")]
+fn saved_audio_device_id_for_start() -> Option<SDL_AudioDeviceID> {
+    let saved_id = AUDIO_DEVICE_ID.load(Ordering::Relaxed);
+    (saved_id != 0).then_some(saved_id)
+}
+
+#[cfg(not(target_os = "emscripten"))]
+fn saved_audio_device_id_for_start() -> Option<SDL_AudioDeviceID> {
+    AUDIO_DEVICE_ID.store(0, Ordering::Relaxed);
+    None
 }
 
 pub struct PlatformSdl2 {
     pub window: *mut SDL_Window,
     pub gl_context: *mut Context,
     pub audio_device_id: SDL_AudioDeviceID,
+    #[cfg(not(target_os = "emscripten"))]
+    pub audio_userdata: *mut c_void,
     pub mouse_x: i32,
     pub mouse_y: i32,
     pub is_wayland: bool,
@@ -57,6 +110,8 @@ impl PlatformSdl2 {
             window: null_mut(),
             gl_context: null_mut(),
             audio_device_id: 0,
+            #[cfg(not(target_os = "emscripten"))]
+            audio_userdata: null_mut(),
             mouse_x: i32::MIN,
             mouse_y: i32::MIN,
             is_wayland: false,
@@ -78,8 +133,8 @@ impl PlatformSdl2 {
 
         let sdl_flags = SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER;
 
-        // Prefer Wayland driver on Wayland sessions (workaround for bundled
-        // SDL2 failing to auto-detect Wayland). Falls back to auto-detection.
+        // Prefer Wayland driver on Wayland sessions because bundled SDL2 fails
+        // to auto-detect Wayland. Falls back to auto-detection.
         let initialized = if std::env::var("XDG_SESSION_TYPE").is_ok_and(|v| v == "wayland")
             && std::env::var("SDL_VIDEODRIVER").is_err()
         {
@@ -112,6 +167,7 @@ impl PlatformSdl2 {
 
     #[cfg(not(target_os = "emscripten"))]
     pub fn quit(&mut self) {
+        self.close_audio();
         unsafe { SDL_Quit() };
         std::process::exit(0);
     }
@@ -131,14 +187,14 @@ impl PlatformSdl2 {
 
     #[cfg(target_os = "emscripten")]
     pub fn export_browser_file(&self, filename: &str) {
-        let script = CString::new(format!("_savePyxelFile('{filename}');")).unwrap();
+        let script = browser_save_script(filename);
         unsafe { emscripten_run_script(script.as_ptr()) };
     }
 
     // Window
 
     pub fn init_window(&mut self, title: &str, width: u32, height: u32) {
-        let title = CString::new(title).unwrap();
+        let title = window_title_c_string(title);
         unsafe {
             self.window = SDL_CreateWindow(
                 title.as_ptr(),
@@ -154,10 +210,9 @@ impl PlatformSdl2 {
                 CStr::from_ptr(SDL_GetError()).to_string_lossy()
             );
 
-            let hint_value = CString::new("1").unwrap();
             SDL_SetHint(
                 SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH.as_ptr().cast(),
-                hint_value.as_ptr(),
+                c"1".as_ptr(),
             );
 
             // Try OpenGL 2.1, fall back to OpenGL ES 2.0
@@ -185,6 +240,10 @@ impl PlatformSdl2 {
             self.gl_context = Box::into_raw(Box::new(Context::from_loader_function(|s| {
                 SDL_GL_GetProcAddress(s.as_ptr().cast()).cast_const()
             })));
+
+            // Grab input focus, which CLI-launched windows don't reliably get on their own
+            #[cfg(not(target_os = "emscripten"))]
+            SDL_RaiseWindow(self.window);
         }
     }
 
@@ -209,7 +268,7 @@ impl PlatformSdl2 {
     }
 
     pub fn set_window_title(&mut self, title: &str) {
-        let title = CString::new(title).unwrap();
+        let title = window_title_c_string(title);
         unsafe { SDL_SetWindowTitle(self.window, title.as_ptr()) };
     }
 
@@ -275,18 +334,21 @@ impl PlatformSdl2 {
         buffer_size: u32,
         callback: F,
     ) {
+        #[cfg(not(target_os = "emscripten"))]
+        self.close_audio();
+
         unsafe { SDL_InitSubSystem(SDL_INIT_AUDIO) };
 
-        // Reuse the audio device across re-initialization
-        let saved_id = AUDIO_DEVICE_ID.load(Ordering::Relaxed);
-        if saved_id != 0 {
+        // Keep browser audio alive across Pyxel Web resets, but reopen native
+        // devices so each launch gets a fresh stream renderer.
+        if let Some(saved_id) = saved_audio_device_id_for_start() {
             self.audio_device_id = saved_id;
             self.pause_audio(false);
             return;
         }
 
-        let userdata = Box::into_raw(Box::new(Box::new(callback) as Box<dyn FnMut(&mut [i16])>))
-            .cast::<c_void>();
+        let userdata =
+            Box::into_raw(Box::new(Box::new(callback) as AudioCallback)).cast::<c_void>();
         let desired = SDL_AudioSpec {
             freq: sample_rate as i32,
             format: AUDIO_S16 as u16,
@@ -304,11 +366,40 @@ impl PlatformSdl2 {
             SDL_OpenAudioDevice(null_mut(), 0, &raw const desired, obtained.as_mut_ptr(), 0)
         };
         if self.audio_device_id == 0 {
+            unsafe { drop(Box::from_raw(userdata.cast::<AudioCallback>())) };
+            #[cfg(not(target_os = "emscripten"))]
+            unsafe {
+                SDL_QuitSubSystem(SDL_INIT_AUDIO);
+            }
             println!("Failed to initialize audio device");
+            return;
         }
 
+        #[cfg(not(target_os = "emscripten"))]
+        {
+            self.audio_userdata = userdata;
+        }
         AUDIO_DEVICE_ID.store(self.audio_device_id, Ordering::Relaxed);
         self.pause_audio(false);
+    }
+
+    #[cfg(not(target_os = "emscripten"))]
+    pub fn close_audio(&mut self) {
+        if self.audio_device_id != 0 {
+            self.pause_audio(true);
+            unsafe { SDL_CloseAudioDevice(self.audio_device_id) };
+            if AUDIO_DEVICE_ID.load(Ordering::Relaxed) == self.audio_device_id {
+                AUDIO_DEVICE_ID.store(0, Ordering::Relaxed);
+            }
+            self.audio_device_id = 0;
+        }
+
+        if !self.audio_userdata.is_null() {
+            unsafe { drop(Box::from_raw(self.audio_userdata.cast::<AudioCallback>())) };
+            self.audio_userdata = null_mut();
+        }
+
+        unsafe { SDL_QuitSubSystem(SDL_INIT_AUDIO) };
     }
 
     pub fn pause_audio(&mut self, paused: bool) {
@@ -421,5 +512,49 @@ impl PlatformSdl2 {
 
     pub fn gl_context(&mut self) -> &'static mut Context {
         unsafe { &mut *self.gl_context }
+    }
+}
+
+impl Drop for PlatformSdl2 {
+    fn drop(&mut self) {
+        #[cfg(not(target_os = "emscripten"))]
+        self.close_audio();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(not(target_os = "emscripten"))]
+    use std::sync::atomic::Ordering;
+
+    use super::{browser_save_script, window_title_c_string};
+    #[cfg(not(target_os = "emscripten"))]
+    use super::{saved_audio_device_id_for_start, AUDIO_DEVICE_ID};
+
+    #[test]
+    fn test_browser_save_script_escapes_filename_as_javascript_string() {
+        let script = browser_save_script("quote'and\n\"slash\\\0.pyxres");
+
+        assert_eq!(
+            script.to_str().unwrap(),
+            r#"_savePyxelFile("quote'and\n\"slash\\\u0000.pyxres");"#
+        );
+    }
+
+    #[test]
+    fn test_window_title_c_string_replaces_nul_bytes() {
+        let title = window_title_c_string("Py\0xel");
+
+        assert_eq!(title.to_str().unwrap(), "Py xel");
+    }
+
+    // Native SDL builds run this; Pyxel Web reuses audio across resets.
+    #[cfg(not(target_os = "emscripten"))]
+    #[test]
+    fn test_native_audio_start_does_not_reuse_saved_device() {
+        AUDIO_DEVICE_ID.store(42, Ordering::Relaxed);
+
+        assert_eq!(saved_audio_device_id_for_start(), None);
+        assert_eq!(AUDIO_DEVICE_ID.load(Ordering::Relaxed), 0);
     }
 }

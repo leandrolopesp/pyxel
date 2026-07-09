@@ -66,6 +66,9 @@ class PianoKeyboard(Widget):
     #   octave_var
     #   is_playing_var
     #   help_message_var
+    #
+    # Events:
+    #   none
 
     def __init__(self, parent):
         super().__init__(parent, 17, 25, 12, 123)
@@ -108,7 +111,6 @@ class PianoKeyboard(Widget):
                 if y_start <= y <= y_end:
                     return octave + offset
 
-        # Then white keys
         for y_start, y_end, offset in _WHITE_KEY_RANGES:
             if y_start <= y < y_end:
                 return octave + offset

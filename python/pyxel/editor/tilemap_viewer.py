@@ -10,6 +10,9 @@ class TilemapViewer(Widget):
     #   focus_x_var
     #   focus_y_var
     #   help_message_var
+    #
+    # Events:
+    #   none
 
     def __init__(self, parent):
         super().__init__(parent, 157, 16, 66, 65)
@@ -59,6 +62,8 @@ class TilemapViewer(Widget):
     def __on_update(self):
         tilemap = pyxel.tilemaps[self.tilemap_index_var]
         image = pyxel.images[tilemap.imgsrc]
+
+        # Refresh a slice of the preview each frame by sampling representative pixels.
         start_y = pyxel.frame_count % 8 * 8
 
         for y in range(start_y, start_y + 8):
@@ -70,7 +75,7 @@ class TilemapViewer(Widget):
     def __on_draw(self):
         self.draw_panel(self.x, self.y, self.width, self.height)
 
-        # Draw tilemap
+        # Draw tilemap preview.
         pyxel.user_pal()
         pyxel.blt(
             self.x + 1,
@@ -83,7 +88,7 @@ class TilemapViewer(Widget):
         )
         pyxel.pal()
 
-        # Draw focus
+        # Draw focus outline.
         x = self.x + self.focus_x_var * 2 + 1
         y = self.y + self.focus_y_var * 2 + 1
         pyxel.clip(self.x + 1, self.y + 1, self.width - 2, self.height - 2)

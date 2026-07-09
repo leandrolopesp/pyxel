@@ -5,7 +5,7 @@ import pyxel
 
 class TestSeqLen:
     def test_colors_len(self):
-        assert len(pyxel.colors) >= 16
+        assert len(pyxel.colors) == pyxel.NUM_COLORS
 
     def test_images_len(self):
         assert len(pyxel.images) == pyxel.NUM_IMAGES
@@ -17,7 +17,7 @@ class TestSeqLen:
         assert len(pyxel.tilemaps) == pyxel.NUM_TILEMAPS
 
     def test_channels_len(self):
-        assert len(pyxel.channels) >= pyxel.NUM_CHANNELS
+        assert len(pyxel.channels) == pyxel.NUM_CHANNELS
 
     def test_tones_len(self):
         assert len(pyxel.tones) == pyxel.NUM_TONES
@@ -42,7 +42,7 @@ class TestSeqGetitem:
         assert all(isinstance(img, pyxel.Image) for img in imgs)
 
     def test_images_out_of_range_raises(self):
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match="list index out of range"):
             _ = pyxel.images[999]
 
     def test_channels_index_access(self):
@@ -66,9 +66,9 @@ class TestSeqGetitem:
 class TestSeqSetitem:
     def test_images_set_by_index(self):
         original = pyxel.images[0]
-        new_img = pyxel.Image(256, 256)
+        new_img = pyxel.Image(64, 64)
         pyxel.images[0] = new_img
-        assert pyxel.images[0].width == 256
+        assert pyxel.images[0].width == 64
         pyxel.images[0] = original
 
 
@@ -133,7 +133,7 @@ class TestSeqAppendPop:
 
 
 class TestSeqIteration:
-    def test_iter(self):
+    def test_iter_images(self):
         count = 0
         for img in pyxel.images:
             assert isinstance(img, pyxel.Image)
@@ -142,12 +142,11 @@ class TestSeqIteration:
 
     def test_contains_with_value_type(self):
         # Object types (Image etc.) create new wrappers each access,
-        # so test __contains__ with value types (colors) instead
+        # so test __contains__ with value types (colors) instead.
         col = pyxel.colors[0]
         assert col in pyxel.colors
 
     def test_not_contains(self):
-        # A value not in the palette
         assert 0x999999 not in pyxel.colors
 
     def test_iter_channels(self):
@@ -179,6 +178,17 @@ class TestSeqSliceOperations:
         assert pyxel.colors[0] == 0x000000
         assert pyxel.colors[1] == 0xFFFFFF
         pyxel.colors[0:2] = original[0:2]
+
+    def test_reversed_step_one_slice_assignment_inserts(self):
+        original = list(pyxel.colors)
+        pyxel.colors[2:0] = [0x123456]
+        assert list(pyxel.colors[:4]) == [
+            original[0],
+            original[1],
+            0x123456,
+            original[2],
+        ]
+        pyxel.colors[:] = original
 
     def test_delitem_slice(self):
         for _ in range(3):
@@ -236,7 +246,6 @@ class TestSeqInsert:
         pyxel.colors.insert(0, 0xABCDEF)
         assert pyxel.colors[0] == 0xABCDEF
         assert len(pyxel.colors) == len(original) + 1
-        # Original first color shifted to index 1
         assert pyxel.colors[1] == original[0]
         del pyxel.colors[0]
         assert len(pyxel.colors) == len(original)
@@ -263,9 +272,8 @@ class TestSeqReversed:
 
 class TestSeqRepr:
     def test_colors_repr(self):
-        r = repr(pyxel.colors)
-        assert isinstance(r, str)
-        assert len(r) > 0
+        # Value-type sequences have a deterministic wrapper-name + list repr.
+        assert repr(pyxel.colors) == f"Colors{list(pyxel.colors)!r}"
 
     def test_images_repr(self):
         r = repr(pyxel.images)
@@ -317,7 +325,6 @@ class TestSeqIadd:
 
 class TestSeqValueOps:
     def test_eq_same_content(self):
-        # Compare a copy of colors list against the sequence
         colors_list = list(pyxel.colors)
         assert pyxel.colors == colors_list
 

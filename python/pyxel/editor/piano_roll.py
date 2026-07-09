@@ -21,6 +21,9 @@ class PianoRoll(Widget):
     #   note_var
     #   is_playing_var
     #   help_message_var
+    #
+    # Events:
+    #   none
 
     def __init__(self, parent):
         super().__init__(parent, 30, 25, 193, 123)
@@ -122,7 +125,7 @@ class PianoRoll(Widget):
 
     def __on_draw(self):
         # Draw frame
-        pyxel.rect(self.x, self.y, self.width, self.height, 7)
+        pyxel.rect(self.x, self.y, self.width, self.height, PIANO_ROLL_BACKGROUND_COLOR)
 
         # Draw cursor or playback position
         play_pos = pyxel.play_pos(0)

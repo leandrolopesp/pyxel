@@ -56,16 +56,19 @@ impl Image {
 
     pub fn from_image(filename: &str, include_colors: Option<bool>) -> Result<RcImage, String> {
         let include_colors = include_colors.unwrap_or(false);
+        let file_image = image::open(Path::new(&filename))
+            .map_err(|_| format!("Failed to open file '{filename}'"))?
+            .to_rgb8();
+
+        // Reset the palette only after the file is readable so a failed load keeps it intact.
         let colors = pyxel::colors();
         if include_colors {
             colors.clear();
         }
-        let file_image = image::open(Path::new(&filename))
-            .map_err(|_| format!("Failed to open file '{filename}'"))?
-            .to_rgb8();
         let (width, height) = file_image.dimensions();
         let rc = Self::new(width, height);
 
+        // Quantize each source RGB once, then reuse the mapped palette index.
         {
             let image = rc_mut!(rc);
             let mut color_table = HashMap::<(u8, u8, u8), Color>::with_capacity(256);
@@ -136,6 +139,7 @@ impl Image {
     // Public data operations
 
     pub fn set(&mut self, x: i32, y: i32, data: &[&str]) {
+        // Parse inline pixel data before drawing it into this image.
         let width = utils::simplify_string(data[0]).len() as u32;
         let height = data.len() as u32;
         let rc = Self::new(width, height);
@@ -363,11 +367,12 @@ impl Image {
             None
         };
         let (src, sx, sy) = match &src_canvas {
-            Some(tmp) => (tmp, 0.0, 0.0),
+            Some(copied_canvas) => (copied_canvas, 0.0, 0.0),
             None => (&image.canvas, image_x, image_y),
         };
 
         let palette = palette_opt!(self);
+        // Dispatch transformed blits separately from direct copies.
         if rotate != 0.0 || scale != 1.0 {
             self.canvas.blit_with_transform(
                 x,
@@ -412,6 +417,7 @@ impl Image {
     ) {
         let rotate = rotate.unwrap_or(0.0);
         let scale = scale.unwrap_or(1.0);
+        // Transform path renders the tilemap region before rotation/scale.
         if rotate != 0.0 || scale != 1.0 {
             self.draw_tilemap_with_transform(
                 x,
@@ -477,7 +483,7 @@ impl Image {
             None
         };
         let image_canvas = match &src_canvas {
-            Some(tmp) => tmp,
+            Some(cloned_canvas) => cloned_canvas,
             None => &resolved.canvas,
         };
 
@@ -604,12 +610,12 @@ impl Image {
         let tilemap_pixel_h = tilemap_inner.height() as f32 * TILE_SIZE as f32;
 
         // Render tilemap region into a temporary image
-        let tmp = Self::new(
+        let rendered_tilemap = Self::new(
             utils::f32_to_u32(width.abs()),
             utils::f32_to_u32(height.abs()),
         );
-        let tmp_ref = rc_mut!(tmp);
-        tmp_ref.draw_tilemap(
+        let rendered_tilemap = rc_mut!(rendered_tilemap);
+        rendered_tilemap.draw_tilemap(
             0.0,
             0.0,
             tilemap,
@@ -621,13 +627,13 @@ impl Image {
             None,
             None,
         );
-        tmp_ref.set_clip_rect(-tilemap_x, -tilemap_y, tilemap_pixel_w, tilemap_pixel_h);
+        rendered_tilemap.set_clip_rect(-tilemap_x, -tilemap_y, tilemap_pixel_w, tilemap_pixel_h);
 
         let palette = palette_opt!(self);
         self.canvas.blit_with_transform(
             x,
             y,
-            &tmp_ref.canvas,
+            &rendered_tilemap.canvas,
             0.0,
             0.0,
             width,
@@ -653,13 +659,14 @@ impl Image {
         transparent: Option<Color>,
     ) {
         let image = rc_ref!(image);
+        // Clone self before perspective blit to avoid read-write aliasing.
         let src_canvas = if ptr::eq(image, self) {
             Some(self.canvas.clone())
         } else {
             None
         };
         let src = match &src_canvas {
-            Some(tmp) => tmp,
+            Some(cloned_canvas) => cloned_canvas,
             None => &image.canvas,
         };
         let palette = palette_opt!(self);
@@ -717,7 +724,7 @@ impl Image {
             None
         };
         let image_canvas = match &src_canvas {
-            Some(tmp) => tmp,
+            Some(cloned_canvas) => cloned_canvas,
             None => &resolved.canvas,
         };
         let img_w = image_canvas.width() as i32;
@@ -731,6 +738,7 @@ impl Image {
         let palette = palette_opt!(self);
         let (wx_step, wy_step, wz_step) = proj.world_step_per_x();
 
+        // Project each screen pixel back into tilemap source space.
         for yi in y1..=y2 {
             let (mut wx, mut wy, mut wz) = proj.world_base(x1, yi);
 
@@ -782,6 +790,7 @@ impl Image {
         let font_data = &font_image.canvas.data;
         let font_w = font_image.canvas.width() as usize;
 
+        // Draw built-in font glyphs from the font image atlas.
         let start_x = x;
         for c in string.chars() {
             if c == '\n' {

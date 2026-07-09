@@ -27,7 +27,7 @@
 
       function shortcutTable(items) {
         let html = `<div class="overflow-x-auto"><table class="w-full border-collapse">
-          <thead><tr><th class="th">${t("th_key")}</th><th class="th">${t("th_action")}</th></tr></thead><tbody>`;
+          <thead><tr><th class="th">${esc(t("th_key"))}</th><th class="th">${esc(t("th_action"))}</th></tr></thead><tbody>`;
         const inlineCode = (s) =>
           esc(s).replace(/`([^`]+)`/g, (_, m) => chip(m));
         for (const i of items)
@@ -35,11 +35,12 @@
         return html + "</tbody></table></div>";
       }
 
+      // Build the user guide shell and section containers.
       function buildPage() {
         const app = document.getElementById("app");
         app.innerHTML = "";
 
-        // Header
+        // Header with language selector and localized title text
         const header = document.createElement("header");
         header.className = "flex items-start gap-4 mb-6";
 
@@ -65,7 +66,7 @@
         header.appendChild(titleBlock);
         app.appendChild(header);
 
-        // Content
+        // User guide section containers populated by updateTexts
         const wrap = document.createElement("div");
         wrap.className = "space-y-6";
         wrap.id = "content";
@@ -87,17 +88,18 @@
         updateTexts();
       }
 
+      // Populate every user guide section from localized JSON content.
       function updateTexts() {
         const pyxelLink = link("https://github.com/kitao/pyxel", "Pyxel");
 
-        // Header
+        // Localized page title and subtitle
         document.title = t("title");
         document.getElementById("page-title").textContent = t("title");
         document.getElementById("page-subtitle").innerHTML = t(
           "subtitle",
         ).replace("{0}", pyxelLink);
 
-        // Overview
+        // Overview summary, external references, and sample images
         document.getElementById("s-overview").innerHTML = `
           <div class="pb-2 mb-3 border-b border-gray-600">
             <img src="../../docs/images/pyxel_logo_152x64.png" alt="Pyxel" class="pix" style="height:64px">
@@ -117,21 +119,21 @@
             link("https://github.com/kitao/pyxel", "GitHub"),
           )}</p>
           <div class="flex items-end gap-2 mt-3">
-            <a href="https://kitao.github.io/pyxel-user-examples/" target="_blank" rel="noopener noreferrer" style="flex:553"><img src="../../docs/images/pyxel_thanks.png" alt="" class="w-full"></a>
-            <a href="https://gihyo.jp/book/2025/978-4-297-14657-3" target="_blank" rel="noopener noreferrer" style="flex:190"><img src="../../docs/images/pyxel_book.png" alt="" class="w-full"></a>
+            <a href="https://kitao.github.io/pyxel-user-examples/" target="_blank" rel="noopener noreferrer" style="flex:553"><img src="../../docs/images/pyxel_thanks.png" alt="Pyxel User Examples" class="w-full" loading="lazy"></a>
+            <a href="https://gihyo.jp/book/2025/978-4-297-14657-3" target="_blank" rel="noopener noreferrer" style="flex:190"><img src="../../docs/images/pyxel_book.png" alt="Pyxel book" class="w-full" loading="lazy"></a>
           </div>
           <div class="flex items-end gap-2 mt-4">
-            <a href="../showcase/examples/02-jump-game.html" target="_blank" rel="noopener noreferrer" style="flex:253"><img src="../../docs/images/02_jump_game.gif" alt="" class="w-full rounded border border-gray-700"></a>
-            <a href="../showcase/examples/10-platformer.html" target="_blank" rel="noopener noreferrer" style="flex:222"><img src="../../docs/images/10_platformer.gif" alt="" class="w-full rounded border border-gray-700"></a>
-            <a href="../showcase/apps/30sec-of-daylight.html" target="_blank" rel="noopener noreferrer" style="flex:268"><img src="../../docs/images/30sec_of_daylight.gif" alt="" class="w-full rounded border border-gray-700"></a>
+            <a href="../showcase/examples/02-jump-game.html" target="_blank" rel="noopener noreferrer" style="flex:253"><img src="../../docs/images/02_jump_game.gif" alt="Jump Game" class="w-full rounded border border-gray-700" loading="lazy"></a>
+            <a href="../showcase/examples/10-platformer.html" target="_blank" rel="noopener noreferrer" style="flex:222"><img src="../../docs/images/10_platformer.gif" alt="Platformer" class="w-full rounded border border-gray-700" loading="lazy"></a>
+            <a href="../showcase/apps/30sec-of-daylight.html" target="_blank" rel="noopener noreferrer" style="flex:268"><img src="../../docs/images/30sec_of_daylight.gif" alt="30 Seconds of Daylight" class="w-full rounded border border-gray-700" loading="lazy"></a>
           </div>
           <div class="flex items-end gap-2 mt-2">
-            <a href="../showcase/apps/megaball.html" target="_blank" rel="noopener noreferrer" style="flex:231"><img src="../../docs/images/megaball.gif" alt="" class="w-full rounded border border-gray-700"></a>
-            <a href="../showcase/tools/image-editor.html" target="_blank" rel="noopener noreferrer" style="flex:256"><img src="../../docs/images/image_tilemap_editor.gif" alt="" class="w-full rounded border border-gray-700"></a>
-            <a href="../showcase/tools/sound-editor.html" target="_blank" rel="noopener noreferrer" style="flex:256"><img src="../../docs/images/sound_music_editor.gif" alt="" class="w-full rounded border border-gray-700"></a>
+            <a href="../showcase/apps/megaball.html" target="_blank" rel="noopener noreferrer" style="flex:231"><img src="../../docs/images/megaball.gif" alt="Megaball" class="w-full rounded border border-gray-700" loading="lazy"></a>
+            <a href="../showcase/tools/image-editor.html" target="_blank" rel="noopener noreferrer" style="flex:256"><img src="../../docs/images/image_tilemap_editor.gif" alt="Image and Tilemap Editor" class="w-full rounded border border-gray-700" loading="lazy"></a>
+            <a href="../showcase/tools/sound-editor.html" target="_blank" rel="noopener noreferrer" style="flex:256"><img src="../../docs/images/sound_music_editor.gif" alt="Sound and Music Editor" class="w-full rounded border border-gray-700" loading="lazy"></a>
           </div>`;
 
-        // Specifications
+        // Core specifications and palette links
         const specs = [
           "specs_platform",
           "specs_language",
@@ -151,17 +153,11 @@
           <h2 class="section-title">${esc(t("specs_title"))}</h2>
           <ul class="list">${specs}</ul>
           <h3 class="sub-title">${esc(t("palette_title"))}</h3>
-          <img src="../../docs/images/05_color_palette.png" alt="Color Palette" class="pix my-2 rounded border border-gray-700">
-          <img src="../../docs/images/pyxel_palette.png" alt="Palette" class="my-2 rounded border border-gray-700">
-          <p class="body mt-3">${t("overview_inspired")
-            .replace("{0}", "Pyxel")
-            .replace(
-              "{1}",
-              link("https://www.lexaloffle.com/pico-8.php", "PICO-8"),
-            )
-            .replace("{2}", link("https://tic80.com/", "TIC-80"))}</p>`;
+          <img src="../../docs/images/05_color_palette.png" alt="Color Palette" class="pix my-2 rounded border border-gray-700" loading="lazy">
+          <img src="../../docs/images/pyxel_palette.png" alt="Palette" class="my-2 rounded border border-gray-700" loading="lazy">
+          <p class="body mt-2 text-sm">${link("../../docs/pyxel.gpl", t("palette_gimp_palette_file"))}</p>`;
 
-        // Install
+        // Desktop, web, and VS Code installation sections
         document.getElementById("s-install").innerHTML = `
           <h2 class="section-title">${esc(t("install_title"))}</h2>
           <h3 class="sub-title">${esc(t("install_desktop_title"))}</h3>
@@ -178,7 +174,7 @@
           )}</p>
           <p class="body mt-2">${t("install_web_other").replace(
             "{0}",
-            link("../web-usage/", esc(t("other_web_usage"))),
+            link("../web-usage/", t("other_web_usage")),
           )}</p>
           <h3 class="sub-title">${esc(t("install_vscode_title"))}</h3>
           <p class="body">${t("install_vscode_body").replace(
@@ -193,7 +189,7 @@
             ),
           )}</p>`;
 
-        // Basic Usage
+        // Command-line usage and bundled example commands
         document.getElementById("s-usage").innerHTML = `
           <h2 class="section-title">${esc(t("usage_title"))}</h2>
           <h3 class="sub-title">${esc(t("usage_command_title"))}</h3>
@@ -229,7 +225,7 @@ pyxel play 30sec_of_daylight.pyxapp`,
             link("../showcase/", "Pyxel Showcase"),
           )}</p>`;
 
-        // Creating Applications
+        // Minimal application examples and run/watch workflow
         document.getElementById("s-creating").innerHTML = `
           <h2 class="section-title">${esc(t("creating_title"))}</h2>
           <h3 class="sub-title">${esc(t("creating_program_title"))}</h3>
@@ -298,7 +294,7 @@ pyxel.show()`,
           <p class="body mb-2">${esc(t("creating_keys_body"))}</p>
           ${shortcutTable(data.special_keys)}`;
 
-        // Resources
+        // Resource editor and resource-loading notes
         document.getElementById("s-resources").innerHTML = `
           <h2 class="section-title">${esc(t("resources_title"))}</h2>
           <h3 class="sub-title">${esc(t("resources_editor_title"))}</h3>
@@ -306,7 +302,7 @@ pyxel.show()`,
             ${esc(t("resources_editor_save"))}</p>
           <p class="body mt-2">${t("resources_editor_link").replace(
             "{0}",
-            link("../editor-manual/", esc(t("tool_editor_manual"))),
+            link("../editor-manual/", t("tool_editor_manual")),
           )}</p>
           <h3 class="sub-title">${esc(t("resources_other_title"))}</h3>
           <p class="body">${esc(t("resources_other_images"))}</p>
@@ -320,7 +316,7 @@ pyxel.show()`,
           </ul>
           <p class="body mt-3">${esc(t("resources_other_refer"))}</p>`;
 
-        // Distributing
+        // Packaging, metadata, and conversion commands
         document.getElementById("s-dist").innerHTML = `
           <h2 class="section-title">${esc(t("dist_title"))}</h2>
           <p class="body">${esc(t("dist_body"))}</p>
@@ -345,17 +341,17 @@ pyxel.show()`,
             .replace("{0}", chip("pyxel app2exe"))
             .replace("{1}", chip("pyxel app2html"))}</p>`;
 
-        // API Reference
+        // API reference pointers and advanced-API note
         document.getElementById("s-apiref").innerHTML = `
           <h2 class="section-title">${esc(t("apiref_title"))}</h2>
           <p class="body">${t("apiref_body").replace(
             "{0}",
-            link("../api-reference/", esc(t("tool_api_reference"))),
+            link("../api-reference/", t("tool_api_reference")),
           )}</p>
           <p class="body mt-2">${esc(t("apiref_advanced"))}</p>
           <p class="body mt-2">${esc(t("apiref_challenge"))}</p>`;
 
-        // Links
+        // Documentation, tools, and community links
         const faqUrl =
           lang === "ja"
             ? "https://github.com/kitao/pyxel/blob/main/docs/faq-ja.md"
@@ -371,7 +367,7 @@ pyxel.show()`,
           ],
           [faqUrl, t("other_faq")],
         ]
-          .map(([u, n]) => `<li>${link(u, esc(n))}</li>`)
+          .map(([u, n]) => `<li>${link(u, n)}</li>`)
           .join("");
         const tools = [
           ["../showcase/", "Pyxel Showcase"],
@@ -385,7 +381,7 @@ pyxel.show()`,
           ["https://github.com/kitao/pyxel-mcp", t("tool_mcp")],
           ["https://github.com/kitao/pyxel-skill", t("tool_skill")],
         ]
-          .map(([u, n]) => `<li>${link(u, esc(n))}</li>`)
+          .map(([u, n]) => `<li>${link(u, n)}</li>`)
           .join("");
         const others = [
           ["https://kitao.github.io/pyxel-user-examples/", t("other_examples")],
@@ -394,7 +390,7 @@ pyxel.show()`,
           ["https://discord.gg/qHA5BCS", t("other_discord_ja")],
           ["https://gihyo.jp/book/2025/978-4-297-14657-3", t("other_book")],
         ]
-          .map(([u, n]) => `<li>${link(u, esc(n))}</li>`)
+          .map(([u, n]) => `<li>${link(u, n)}</li>`)
           .join("");
         document.getElementById("s-links").innerHTML = `
           <h2 class="section-title">${esc(t("links_title"))}</h2>
@@ -405,7 +401,7 @@ pyxel.show()`,
           <h3 class="sub-title">${esc(t("other_title"))}</h3>
           <ul class="link-list">${others}</ul>`;
 
-        // Contribute
+        // Issue, testing, and pull-request guidance
         document.getElementById("s-contrib").innerHTML = `
           <h2 class="section-title">${esc(t("contrib_title"))}</h2>
           <h3 class="sub-title">${esc(t("contrib_issues_title"))}</h3>
@@ -428,7 +424,7 @@ pyxel.show()`,
             ),
           )}</p>`;
 
-        // License
+        // License summary
         document.getElementById("s-license").innerHTML = `
           <h2 class="section-title">${esc(t("license_title"))}</h2>
           <p class="body">${t("license_body").replace(
@@ -439,19 +435,19 @@ pyxel.show()`,
             ),
           )}</p>`;
 
-        // Sponsors
+        // Sponsorship link
         document.getElementById("s-sponsors").innerHTML = `
           <h2 class="section-title">${esc(t("sponsors_title"))}</h2>
           <p class="body">${t("sponsors_body").replace(
             "{0}",
-            link("https://github.com/sponsors/kitao", esc(t("sponsors_link"))),
+            link("https://github.com/sponsors/kitao", t("sponsors_link")),
           )}</p>`;
 
         setDocLang(lang);
         hljs.highlightAll();
       }
 
-      // Init
+      // Initialize from the localized user guide JSON.
       initPage("user-guide.json", buildPage);
     </script>
   </body>

@@ -68,12 +68,13 @@ impl Tilemap {
 
     fn data_ptr(&self, py: Python) -> PyResult<Py<PyAny>> {
         let inner = self.inner_mut();
+        // Expose the tilemap buffer as a ctypes array without copying.
         let python_code = CString::new(format!(
             "import ctypes; c_uint16_array = (ctypes.c_uint16 * {}).from_address({:p})",
             inner.width() * inner.height() * 2,
             inner.data_ptr()
         ))
-        .unwrap();
+        .expect("data pointer script is built from numeric values");
         let locals = PyDict::new(py);
         py.run(python_code.as_c_str(), None, Some(&locals))?;
         let array = locals
@@ -265,6 +266,8 @@ impl Tilemap {
         self.inner_mut().imgsrc = pyxel::ImageSource::Index(img);
     }
 }
+
+// Module registration
 
 pub fn add_tilemap_class(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Tilemap>()?;

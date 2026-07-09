@@ -11,7 +11,7 @@ use crate::profiler::Profiler;
 use crate::pyxel::{self, Pyxel};
 #[cfg(not(target_os = "emscripten"))]
 use crate::settings::WINDOW_TO_DISPLAY_RATIO;
-use crate::settings::{MAX_FRAME_DELAY_MS, NUM_MEASURE_FRAMES, NUM_SCREEN_TYPES};
+use crate::settings::{MAX_FRAME_DELAY_MS, NUM_MEASURE_FRAMES, NUM_SCREEN_MODES};
 use crate::utils;
 use crate::window_watcher::WindowWatcher;
 
@@ -153,12 +153,12 @@ impl Pyxel {
     pub fn restart(&mut self) {
         #[cfg(not(target_os = "emscripten"))]
         if let Some(mut callback) = pyxel::reset_callback().take() {
+            platform::close_audio();
             callback();
         }
 
         #[cfg(target_os = "emscripten")]
         {
-            use std::ffi::CString;
             use std::os::raw::c_char;
 
             extern "C" {
@@ -166,8 +166,7 @@ impl Pyxel {
             }
 
             unsafe {
-                let script = CString::new("resetPyxel();").unwrap();
-                emscripten_run_script(script.as_ptr());
+                emscripten_run_script(c"resetPyxel();".as_ptr());
             }
         }
     }
@@ -180,6 +179,7 @@ impl Pyxel {
         platform::set_window_title(title);
     }
 
+    // Convert icon pattern data into scaled RGBA pixels.
     pub fn set_icon(&self, data: &[&str], scale: u32, transparent: Option<Color>) {
         if *pyxel::is_headless() {
             return;
@@ -237,6 +237,7 @@ impl Pyxel {
         platform::set_fullscreen(enabled);
     }
 
+    // Resize screen resources while keeping window scaling coherent.
     pub fn set_screen_size(&mut self, width: u32, height: u32) {
         assert!(
             width > 0 && height > 0,
@@ -277,6 +278,7 @@ impl Pyxel {
 
     // Event & Input Processing
 
+    // Poll platform events and update input/window state.
     fn process_events(&mut self) {
         if platform::is_sigint_received() {
             platform::quit();
@@ -310,6 +312,7 @@ impl Pyxel {
         self.system.event_buf = events;
     }
 
+    // Handle hidden capture and display shortcuts before regular update code.
     fn check_special_input(&mut self) {
         if self.is_button_pressed(self.system.quit_key, None, None) {
             self.reset_key(self.system.quit_key);
@@ -329,7 +332,7 @@ impl Pyxel {
                 }
             } else if self.is_button_pressed(KEY_1, None, None) {
                 self.reset_key(KEY_1);
-                if let Err(e) = self.take_screenshot(None, None) {
+                if let Err(e) = self.save_screenshot(None, None) {
                     println!("{e}");
                 }
             } else if self.is_button_pressed(KEY_2, None, None) {
@@ -345,7 +348,7 @@ impl Pyxel {
                 self.set_integer_scale(!self.system.integer_scale_enabled);
             } else if self.is_button_pressed(KEY_9, None, None) {
                 self.reset_key(KEY_9);
-                self.set_screen_mode((self.system.screen_mode + 1) % NUM_SCREEN_TYPES);
+                self.set_screen_mode((self.system.screen_mode + 1) % NUM_SCREEN_MODES);
             } else if self.is_button_pressed(KEY_0, None, None) {
                 self.reset_key(KEY_0);
                 self.set_perf_monitor(!self.system.perf_monitor_enabled);
@@ -369,7 +372,7 @@ impl Pyxel {
                 self.set_integer_scale(!self.system.integer_scale_enabled);
             } else if self.is_button_pressed(GAMEPAD1_BUTTON_DPAD_RIGHT, None, None) {
                 self.reset_key(GAMEPAD1_BUTTON_DPAD_RIGHT);
-                self.set_screen_mode((self.system.screen_mode + 1) % NUM_SCREEN_TYPES);
+                self.set_screen_mode((self.system.screen_mode + 1) % NUM_SCREEN_MODES);
             } else if self.is_button_pressed(GAMEPAD1_BUTTON_DPAD_UP, None, None) {
                 self.reset_key(GAMEPAD1_BUTTON_DPAD_UP);
                 self.set_perf_monitor(!self.system.perf_monitor_enabled);
@@ -416,6 +419,7 @@ impl Pyxel {
 
     // Rendering & UI
 
+    // Draw frame metrics while preserving the caller's screen state.
     fn draw_perf_monitor(&self) {
         if !self.system.perf_monitor_enabled {
             return;
@@ -455,6 +459,7 @@ impl Pyxel {
         screen.set_dithering(alpha);
     }
 
+    // Draw the custom cursor while preserving screen state.
     fn draw_cursor(&self) {
         let x = *pyxel::mouse_x();
         let y = *pyxel::mouse_y();

@@ -72,7 +72,7 @@ class MusicEditor(EditorBase):
         )
         self.copy_var("should_loop_var", self._loop_button, "is_checked_var")
 
-        # Initialize music field
+        # Initialize music fields
         self._music_fields = [MusicField(self, 11, 29 + i * 25, i) for i in range(4)]
 
         # Initialize sound selector
@@ -91,7 +91,7 @@ class MusicEditor(EditorBase):
         if index >= pyxel.NUM_CHANNELS:
             return None
         # Resource load may leave music.seqs shorter than NUM_CHANNELS,
-        # so normalize on every access
+        # so normalize on every access.
         music = pyxel.musics[self.music_index_var]
         seqs_len = len(music.seqs)
         if seqs_len < pyxel.NUM_CHANNELS:
@@ -165,11 +165,11 @@ class MusicEditor(EditorBase):
     def __on_play_button_press(self):
         self._play(pyxel.btn(pyxel.KEY_SHIFT))
 
-    def __on_stop_button_press(self):
-        self._stop()
-
     def __on_play_button_mouse_hover(self, _x, _y):
         self.help_message_var = "PLAY:SPACE PART-PLAY:SHIFT+SPACE"
+
+    def __on_stop_button_press(self):
+        self._stop()
 
     def __on_stop_button_mouse_hover(self, _x, _y):
         self.help_message_var = "STOP:SPACE"

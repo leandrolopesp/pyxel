@@ -9,6 +9,9 @@ from _capture import compare_or_update_all  # type: ignore[reportMissingImports]
 ASSETS_DIR = Path(__file__).parent.parent / "pyxel" / "examples" / "assets"
 
 
+# Pytest option and ordering hooks
+
+
 def pytest_addoption(parser):
     parser.addoption(
         "--update-references",
@@ -18,7 +21,7 @@ def pytest_addoption(parser):
 
 
 def pytest_collection_modifyitems(items):
-    # Run subprocess-based regression tests last so cheap failures surface early
+    # Run subprocess-based regression tests last so cheap failures surface early.
     regression = []
     others = []
     for item in items:
@@ -28,6 +31,9 @@ def pytest_collection_modifyitems(items):
         else:
             others.append(item)
     items[:] = others + regression
+
+
+# Shared fixtures
 
 
 @pytest.fixture(scope="session")

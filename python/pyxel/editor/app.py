@@ -24,9 +24,12 @@ class App(Widget):
     # Variables:
     #   editor_type_var
     #   help_message_var
+    #
+    # Events:
+    #   none
 
     def __init__(self, resource_file, starting_editor):
-        # Resolve the absolute path before pyxel.init changes the working directory
+        # Resolve the absolute path before pyxel.init changes the working directory.
         original_resource_file = resource_file
         resource_path = Path(resource_file).absolute()
 
@@ -49,7 +52,7 @@ class App(Widget):
             pyxel.load_pal(resource_file)
 
         # Concatenate system and user palettes so colors[:NUM_COLORS] are the
-        # system set and colors[NUM_COLORS:] are the user set
+        # system set and colors[NUM_COLORS:] are the user set.
         pyxel.num_user_colors = len(pyxel.colors)
         colors += list(pyxel.colors)
         pyxel.colors[:] = colors
@@ -152,7 +155,7 @@ class App(Widget):
 
     def __on_update(self):
         # pyxel._dropped_files is the legacy path for drop events injected by
-        # the WASM runtime; drain it each frame and prefer native dropped_files
+        # the WASM runtime; drain it each frame and prefer native dropped_files.
         wasm_dropped_files = getattr(pyxel, "_dropped_files", [])
         pyxel._dropped_files = []
         if pyxel.dropped_files:
@@ -193,7 +196,7 @@ class App(Widget):
             ):
                 self._redo_button.is_pressed_var = True
 
-        # Hidden save shortcut for Pyxel Code Maker
+        # Hidden save shortcut for Pyxel Code Maker.
         if pyxel.btn(pyxel.KEY_F13):
             self._save_button.is_pressed_var = True
 

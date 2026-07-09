@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
     <script src="../shared.js"></script>
   </head>
+
   <body class="page h-full">
     <main class="mx-auto p-6 max-w-4xl">
       <h1 class="mb-2 font-semibold text-2xl tracking-tight">
@@ -265,13 +266,13 @@
     </main>
 
     <script>
-      // Cache elements
+      // Cache frequently used screen, share-link, and QR elements.
       const runtimeScreen = document.getElementById("runtime-screen");
       const shareUrl = document.getElementById("share-url");
       const qrCodeImage = document.getElementById("qr-code-image");
 
-      // URL compression helpers
-      // Base conversion (uint8ToBase64, base64ToUint8) provided by shared.js
+      // URL compression helpers for compact share links
+      // Base conversion helpers are provided by shared.js.
       function b64urlEncode(bytes) {
         return uint8ToBase64(bytes)
           .replace(/\+/g, "-")
@@ -304,16 +305,21 @@
         return b64urlEncode(compressed);
       }
 
-      // Decoder: detect legacy lz-string by presence of characters it uses
-      // that base64url does not: `+`, `$`, and ` ` (the `+` in a URL query
-      // becomes a space after URLSearchParams decoding).
+      // Decoder: `+` (or its space form after URLSearchParams decoding) marks
+      // legacy lz-string. Short legacy values may consist of base64url
+      // characters only, so try the new format first and fall back on failure.
       async function decodeMmlFromUrl(value) {
-        if (value.includes("+") || value.includes("$") || value.includes(" ")) {
+        if (value.includes("+") || value.includes(" ")) {
           return LZString.decompressFromEncodedURIComponent(value);
         }
-        return await decompressDeflateRaw(b64urlDecode(value));
+        try {
+          return await decompressDeflateRaw(b64urlDecode(value));
+        } catch {
+          return LZString.decompressFromEncodedURIComponent(value);
+        }
       }
 
+      // Playback button state helpers
       function setButtonStyle(button, isActive) {
         button.classList.toggle("active", isActive);
       }
@@ -342,12 +348,22 @@
         }
       }
 
+      // Defer the URL/QR refresh so typing does not regenerate the QR code
+      // and rewrite the history entry on every keystroke.
+      let urlUpdateTimer = null;
+
+      function scheduleUrlUpdate() {
+        clearTimeout(urlUpdateTimer);
+        urlUpdateTimer = setTimeout(updateUrl, 300);
+      }
+
       function handleMmlInput(textarea) {
         runtimeScreen.contentWindow[`js_${textarea.id}_mml`] = textarea.value;
-        updateUrl();
+        scheduleUrlUpdate();
       }
 
       async function updateUrl() {
+        clearTimeout(urlUpdateTimer);
         let mmlStr = "";
         for (let i = 1; i <= 4; i++) {
           const textarea = document.getElementById(`ch${i}`);
@@ -379,7 +395,7 @@
       }
 
       window.addEventListener("DOMContentLoaded", async () => {
-        // Bind inline-style handlers via data attributes
+        // Bind data-attribute handlers declared in the static markup.
         document.querySelectorAll("[data-click]").forEach((el) => {
           el.addEventListener("click", () => handleButtonPress(el));
         });
@@ -387,32 +403,32 @@
           el.addEventListener("input", () => handleMmlInput(el));
         });
 
-        // Forward input to runtime
+        // Forward user gestures so the embedded Pyxel runtime can unlock input.
         ["click", "touchstart"].forEach((ev) => {
           window.addEventListener(ev, resolvePyxelInput);
         });
 
-        // Keyboard shortcuts
-        window.addEventListener("keydown", (event) => {
+        // Keyboard shortcuts for play, stop, and loop
+        window.addEventListener("keydown", (e) => {
           resolvePyxelInput();
-          if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+          if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
             const playButton = document.querySelector(
               'button[data-action="play"]',
             );
             if (playButton && !playButton.disabled) {
-              event.preventDefault();
+              e.preventDefault();
               handleButtonPress(playButton);
             }
-          } else if (event.key === "Escape") {
+          } else if (e.key === "Escape") {
             const stopButton = document.querySelector(
               'button[data-action="stop"]',
             );
             if (stopButton && !stopButton.disabled) {
-              event.preventDefault();
+              e.preventDefault();
               handleButtonPress(stopButton);
             }
-          } else if ((event.ctrlKey || event.metaKey) && event.key === "l") {
-            event.preventDefault();
+          } else if ((e.ctrlKey || e.metaKey) && e.key === "l") {
+            e.preventDefault();
             const loopButton = document.querySelector(
               'button[data-action="loop"]',
             );
@@ -422,7 +438,7 @@
           }
         });
 
-        // Load MML from URL
+        // Restore shared MML from the URL before generating a fresh share link.
         const mmlParam = new URL(document.location).searchParams.get("mml");
         if (mmlParam) {
           const raw = await decodeMmlFromUrl(mmlParam);
@@ -436,7 +452,7 @@
 
         updateUrl();
 
-        // Set initial button states
+        // Push initial button states into the runtime after the iframe loads.
         runtimeScreen.addEventListener("load", () => {
           document.querySelectorAll("button[data-action]").forEach((button) => {
             const varName = `js_${button.dataset.action}`;
@@ -445,7 +461,7 @@
           });
         });
 
-        // Enable buttons when ready
+        // Enable playback controls after the runtime context is ready.
         waitForPyxelReady(
           () => runtimeScreen.contentWindow?.pyxelContext?.resolveInput,
           () => {

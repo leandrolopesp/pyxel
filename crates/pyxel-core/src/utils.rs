@@ -1,3 +1,5 @@
+// Shared helper macros
+
 macro_rules! string_loop {
     ($i: ident, $piece: ident, $s: ident, $step: expr, $block: block) => {
         for $i in 0..($s.len() / $step) {
@@ -38,6 +40,8 @@ macro_rules! rc_mut {
     };
 }
 
+// Numeric rounding helpers
+
 pub fn f32_to_i32(x: f32) -> i32 {
     x.round() as i32
 }
@@ -45,6 +49,8 @@ pub fn f32_to_i32(x: f32) -> i32 {
 pub fn f32_to_u32(x: f32) -> u32 {
     x.round() as u32
 }
+
+// String normalization helpers
 
 pub fn remove_whitespace(string: &str) -> String {
     string.replace(&[' ', '\n', '\r', '\t'][..], "")
@@ -79,6 +85,8 @@ pub fn add_file_extension(filename: &str, ext: &str) -> String {
         format!("{filename}{ext}")
     }
 }
+
+// Vector compression and expansion helpers
 
 pub fn compress_vec<T: PartialEq + Clone>(vec: &[T]) -> Vec<T> {
     assert!(!vec.is_empty());
@@ -133,7 +141,7 @@ pub fn trim_empty_vec<T: Clone>(vecs: &[Vec<T>]) -> Vec<Vec<T>> {
 mod tests {
     use super::*;
 
-    // f32_to_i32 / f32_to_u32
+    // Numeric rounding tests
 
     #[test]
     fn test_f32_to_i32() {
@@ -187,13 +195,9 @@ mod tests {
 
     #[test]
     fn test_parse_hex_string_edge_cases() {
-        // Empty string
         assert_eq!(parse_hex_string(""), Ok(0));
-        // Single digit
         assert_eq!(parse_hex_string("F"), Ok(15));
-        // u32 max value
         assert_eq!(parse_hex_string("FFFFFFFF"), Ok(u32::MAX));
-        // Mixed case in same string
         assert_eq!(parse_hex_string("aB"), Ok(0xAB));
     }
 
@@ -207,15 +211,13 @@ mod tests {
 
     #[test]
     fn test_add_file_extension_edge_cases() {
-        // Empty filename
         assert_eq!(add_file_extension("", ".png"), ".png");
-        // Partial extension match (should NOT match)
+        // Partial suffixes must still receive the full extension.
         assert_eq!(add_file_extension("test.pn", ".png"), "test.pn.png");
-        // Extension only
         assert_eq!(add_file_extension(".png", ".png"), ".png");
     }
 
-    // Macros
+    // Macro behavior tests
 
     #[test]
     fn test_string_loop() {
@@ -238,7 +240,7 @@ mod tests {
         assert!(v.is_empty());
     }
 
-    // Vec compress/expand/trim
+    // Vector shape helper tests
 
     #[test]
     fn test_compress_vec() {

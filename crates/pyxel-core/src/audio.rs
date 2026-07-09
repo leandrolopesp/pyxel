@@ -26,6 +26,8 @@ struct AudioStreamRenderer {
     blip_buf: BlipBuf,
 }
 
+// Audio locking
+
 impl AudioLock {
     pub fn lock() -> Self {
         platform::lock_audio();
@@ -38,6 +40,8 @@ impl Drop for AudioLock {
         platform::unlock_audio();
     }
 }
+
+// Stream rendering
 
 impl AudioStreamRenderer {
     fn new() -> Self {
@@ -53,6 +57,8 @@ impl AudioStreamRenderer {
     }
 }
 
+// Audio output
+
 impl Audio {
     pub fn start() {
         let mut stream_renderer = AudioStreamRenderer::new();
@@ -66,11 +72,18 @@ impl Audio {
         );
     }
 
+    // Render generated samples and mix PCM playback.
     pub fn render_samples(channels: &[RcChannel], blip_buf: &mut BlipBuf, out: &mut [i16]) {
-        let needs_blip = channels
-            .iter()
-            .any(|ch| rc_ref!(ch).needs_blip_processing());
-        let needs_pcm = channels.iter().any(|ch| rc_ref!(ch).is_playing_pcm());
+        let mut needs_blip = false;
+        let mut needs_pcm = false;
+        for ch in channels {
+            let channel = rc_ref!(ch);
+            needs_blip |= channel.needs_blip_processing();
+            needs_pcm |= channel.is_playing_pcm();
+            if needs_blip && needs_pcm {
+                break;
+            }
+        }
         let mut written = blip_buf.read_samples(out, false);
 
         if needs_blip {
@@ -105,6 +118,7 @@ impl Audio {
         }
     }
 
+    // File export
     #[cfg(pyxel_core)]
     pub fn save_samples(filename: &str, samples: &[i16], use_ffmpeg: bool) -> Result<(), String> {
         // Save WAV file
@@ -238,9 +252,29 @@ impl Pyxel {
 
     pub fn play_music(&self, music_index: u32, start_sec: Option<f32>, should_loop: bool) {
         let music = rc_ref!(pyxel::musics()[music_index as usize]);
+        let channels = pyxel::channels();
+        let channel_count = channels.len();
+        let pyxel_sounds = pyxel::sounds();
 
-        for (i, seq) in music.seqs.iter().enumerate().take(pyxel::channels().len()) {
-            self.play(i as u32, seq, start_sec, should_loop, false);
+        let channel_sounds: Vec<_> = music
+            .seqs
+            .iter()
+            .enumerate()
+            .take(channel_count)
+            .filter(|(_, seq)| !seq.is_empty())
+            .map(|(i, seq)| {
+                (
+                    i,
+                    seq.iter()
+                        .map(|&index| pyxel_sounds[index as usize].clone())
+                        .collect(),
+                )
+            })
+            .collect();
+
+        let _lock = AudioLock::lock();
+        for (i, sounds) in channel_sounds {
+            rc_mut!(channels[i]).play(sounds, start_sec, should_loop, false);
         }
     }
 
